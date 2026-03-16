@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Preferences } from '@capacitor/preferences';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import './App.css';
 
 interface Expense {
@@ -66,7 +69,8 @@ function App() {
     loadData();
 
     const today = new Date();
-    setDate(today.toISOString().split('T')[0]);
+    const localDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    setDate(localDate);
     setTime(today.toTimeString().split(' ')[0].substring(0, 5));
   }, []);
 
@@ -152,17 +156,19 @@ function App() {
     if (paymentModeFilter !== 'All' && expense.paymentMode !== paymentModeFilter) return false;
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
 
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.getFullYear() + '-' + String(yesterday.getMonth() + 1).padStart(2, '0') + '-' + String(yesterday.getDate()).padStart(2, '0');
 
-    if (dateFilter === 'Today' && expense.date !== today.toISOString().split('T')[0]) return false;
-    if (dateFilter === 'Yesterday' && expense.date !== yesterday.toISOString().split('T')[0]) return false;
-    if (dateFilter === 'Tomorrow' && expense.date !== tomorrow.toISOString().split('T')[0]) return false;
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.getFullYear() + '-' + String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + String(tomorrow.getDate()).padStart(2, '0');
+
+    if (dateFilter === 'Today' && expense.date !== todayStr) return false;
+    if (dateFilter === 'Yesterday' && expense.date !== yesterdayStr) return false;
+    if (dateFilter === 'Tomorrow' && expense.date !== tomorrowStr) return false;
 
     if (dateFilter === 'Custom' && customDateFilter && !expense.date.startsWith(customDateFilter)) return false;
 
@@ -177,15 +183,37 @@ function App() {
 
   const totalExpense = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  const handleBackup = () => {
+  const handleBackup = async () => {
     const dataStr = JSON.stringify({ expenses, categories }, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `expense_backup_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const fileName = `expense_backup_${new Date().toISOString().split('T')[0]}.json`;
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: dataStr,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8,
+        });
+
+        await Share.share({
+          title: 'Expense Tracker Backup',
+          text: 'Your expense tracker backup data',
+          url: result.uri,
+        });
+      } catch (err) {
+        console.error('Error sharing backup file', err);
+        alert('Failed to generate backup file for sharing');
+      }
+    } else {
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   const handleRestoreFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -523,6 +551,24 @@ function App() {
             <p style={{ lineHeight: '1.6', color: '#4a5568' }}>
               Designed with a modern interface, prioritizing ease of access and quick navigation.
             </p>
+
+            <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid #edf2f7', textAlign: 'center' }}>
+              <p style={{ color: '#718096', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Developed By</p>
+              <h3 style={{ color: '#2d3748', fontSize: '1.2rem', fontWeight: '700', marginBottom: '0.25rem' }}>Arbaz Gazge</h3>
+              <a
+                href="https://www.instagram.com/arbaz_gazge"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#E1306C', textDecoration: 'none', fontWeight: '600', fontSize: '0.95rem', marginTop: '0.5rem' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                </svg>
+                @arbaz_gazge
+              </a>
+            </div>
           </div>
         )}
       </main>
