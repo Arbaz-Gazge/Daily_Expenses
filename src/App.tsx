@@ -15,6 +15,10 @@ interface Expense {
   paymentMode?: string;
 }
 
+interface Settings {
+  theme: 'light' | 'dark';
+}
+
 function App() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [amount, setAmount] = useState('');
@@ -33,6 +37,9 @@ function App() {
   const [dateFilter, setDateFilter] = useState('All');
   const [customDateFilter, setCustomDateFilter] = useState('');
   const [paymentModeFilter, setPaymentModeFilter] = useState('All');
+
+  // Settings
+  const [settings, setSettings] = useState<Settings>({ theme: 'light' });
 
   // Backup & Restore
   // edit mode
@@ -65,6 +72,10 @@ function App() {
       } else {
         setCategories(defaultCategories);
       }
+      const savedSettings = await Preferences.get({ key: 'settings' });
+      if (savedSettings.value) {
+        setSettings(JSON.parse(savedSettings.value));
+      }
     };
     loadData();
 
@@ -83,6 +94,15 @@ function App() {
       Preferences.set({ key: 'categories', value: JSON.stringify(categories) });
     }
   }, [categories]);
+
+  useEffect(() => {
+    Preferences.set({ key: 'settings', value: JSON.stringify(settings) });
+    if (settings.theme === 'dark') {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
+  }, [settings]);
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,7 +204,7 @@ function App() {
   const totalExpense = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   const handleBackup = async () => {
-    const dataStr = JSON.stringify({ expenses, categories }, null, 2);
+    const dataStr = JSON.stringify({ expenses, categories, settings }, null, 2);
     const fileName = `expense_backup_${new Date().toISOString().split('T')[0]}.json`;
 
     if (Capacitor.isNativePlatform()) {
@@ -227,6 +247,7 @@ function App() {
         const data = JSON.parse(content);
         if (data.expenses) setExpenses(data.expenses);
         if (data.categories) setCategories(data.categories);
+        if (data.settings) setSettings(data.settings);
         alert('Data restored successfully!');
       } catch (err) {
         alert('Invalid backup file format.');
@@ -263,6 +284,20 @@ function App() {
             About Us
           </li>
         </ul>
+
+        <div className="sidebar-footer">
+          <div className="theme-toggle">
+            <span>Dark Mode</span>
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={settings.theme === 'dark'}
+                onChange={() => setSettings({ ...settings, theme: settings.theme === 'dark' ? 'light' : 'dark' })}
+              />
+              <span className="slider round"></span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <header className="header" style={{ position: 'relative' }}>
