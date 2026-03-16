@@ -886,6 +886,31 @@ input:checked+.slider:before {
   box-shadow: var(--card-shadow);
 }
 
+.about-text {
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.about-footer {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.developed-by {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.developer-name {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
 .custom-file-input {
   width: 100%;
   padding: 0.5rem;

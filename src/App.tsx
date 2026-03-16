@@ -675,18 +675,18 @@ function App() {
           <div className="about-container">
             <h2>About Expense Tracker</h2>
             <br />
-            <p style={{ lineHeight: '1.6', color: '#4a5568' }}>
+            <p className="about-text">
               This Expense Tracker was beautifully built to assist you in tracking your financial footprint across multiple accounts, cash payments, and days.
               Always keep track of where your money goes.
             </p>
             <br />
-            <p style={{ lineHeight: '1.6', color: '#4a5568' }}>
+            <p className="about-text">
               Designed with a modern interface, prioritizing ease of access and quick navigation.
             </p>
 
-            <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid #edf2f7', textAlign: 'center' }}>
-              <p style={{ color: '#718096', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Developed By</p>
-              <h3 style={{ color: '#2d3748', fontSize: '1.2rem', fontWeight: '700', marginBottom: '0.25rem' }}>Arbaz Gazge</h3>
+            <div className="about-footer">
+              <p className="developed-by">Developed By</p>
+              <h3 className="developer-name">Arbaz Gazge</h3>
               <a
                 href="https://www.instagram.com/arbaz_gazge"
                 target="_blank"
