@@ -13,6 +13,7 @@ interface Expense {
   time: string;
   category?: string;
   paymentMode?: string;
+  remark?: string;
 }
 
 interface Settings {
@@ -27,6 +28,7 @@ function App() {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [paymentMode, setPaymentMode] = useState('');
+  const [remark, setRemark] = useState('');
 
   // Sidebar and View State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -138,6 +140,7 @@ function App() {
             date,
             time,
             paymentMode: paymentMode || 'Not Specified',
+            remark,
           }
           : exp
       ));
@@ -151,6 +154,7 @@ function App() {
         date,
         time,
         paymentMode: paymentMode || 'Not Specified',
+        remark,
       };
       setExpenses([...expenses, newExpense]);
     }
@@ -159,6 +163,7 @@ function App() {
     setDescription('');
     setCategory('');
     setPaymentMode('');
+    setRemark('');
 
     // Automatically switch to dashboard after adding
     handleViewSwitch('Dashboard');
@@ -184,6 +189,7 @@ function App() {
     setDate(expense.date);
     setTime(expense.time);
     setPaymentMode(expense.paymentMode || '');
+    setRemark(expense.remark || '');
     setEditExpenseId(expense.id);
     handleViewSwitch('Add Expense');
   };
@@ -493,6 +499,17 @@ function App() {
               </div>
             </div>
 
+            <div className="form-group">
+              <label>Note / Remark (Optional)</label>
+              <textarea
+                value={remark}
+                onChange={(e) => setRemark(e.target.value)}
+                placeholder="Add a note or remark..."
+                rows={2}
+                className="custom-textarea"
+              ></textarea>
+            </div>
+
             <button type="submit" className="submit-btn">{editExpenseId ? 'Update Expense' : '+ Add Expense'}</button>
           </form>
         )}
@@ -634,6 +651,11 @@ function App() {
                         )}
                         <div style={{ width: '100%', height: '4px' }}></div>
                         {expense.date} • {expense.time}
+                        {expense.remark && (
+                          <div className="expense-remark">
+                            <span className="remark-icon">📝</span> {expense.remark}
+                          </div>
+                        )}
                       </span>
                     </div>
                     <div className="expense-action" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
