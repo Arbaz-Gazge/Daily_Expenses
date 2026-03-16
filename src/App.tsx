@@ -32,7 +32,8 @@ function App() {
   const [paymentModeFilter, setPaymentModeFilter] = useState('All');
 
   // Backup & Restore
-  const [backupData, setBackupData] = useState('');
+  // edit mode
+  const [editExpenseId, setEditExpenseId] = useState<string | null>(null);
 
   const defaultCategories = [
     "Food & Dining",
@@ -83,17 +84,34 @@ function App() {
     e.preventDefault();
     if (!amount || !description || !date || !time) return;
 
-    const newExpense: Expense = {
-      id: Date.now().toString(),
-      amount: parseFloat(amount),
-      description,
-      category: category || 'Uncategorized',
-      date,
-      time,
-      paymentMode: paymentMode || 'Not Specified',
-    };
+    if (editExpenseId) {
+      setExpenses(expenses.map(exp =>
+        exp.id === editExpenseId
+          ? {
+            ...exp,
+            amount: parseFloat(amount),
+            description,
+            category: category || 'Uncategorized',
+            date,
+            time,
+            paymentMode: paymentMode || 'Not Specified',
+          }
+          : exp
+      ));
+      setEditExpenseId(null);
+    } else {
+      const newExpense: Expense = {
+        id: Date.now().toString(),
+        amount: parseFloat(amount),
+        description,
+        category: category || 'Uncategorized',
+        date,
+        time,
+        paymentMode: paymentMode || 'Not Specified',
+      };
+      setExpenses([...expenses, newExpense]);
+    }
 
-    setExpenses([...expenses, newExpense]);
     setAmount('');
     setDescription('');
     setCategory('');
@@ -105,6 +123,17 @@ function App() {
 
   const deleteExpense = (id: string) => {
     setExpenses(expenses.filter(e => e.id !== id));
+  };
+
+  const handleEdit = (expense: Expense) => {
+    setAmount(expense.amount.toString());
+    setDescription(expense.description);
+    setCategory(expense.category || '');
+    setDate(expense.date);
+    setTime(expense.time);
+    setPaymentMode(expense.paymentMode || '');
+    setEditExpenseId(expense.id);
+    setCurrentView('Add Expense');
   };
 
   const addCategory = () => {
@@ -149,20 +178,34 @@ function App() {
   const totalExpense = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   const handleBackup = () => {
-    setBackupData(JSON.stringify({ expenses, categories }));
+    const dataStr = JSON.stringify({ expenses, categories }, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expense_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleRestore = () => {
-    try {
-      if (!backupData.trim()) return;
-      const data = JSON.parse(backupData);
-      if (data.expenses) setExpenses(data.expenses);
-      if (data.categories) setCategories(data.categories);
-      alert('Data restored successfully!');
-      setBackupData('');
-    } catch (e) {
-      alert('Invalid backup data format.');
-    }
+  const handleRestoreFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const data = JSON.parse(content);
+        if (data.expenses) setExpenses(data.expenses);
+        if (data.categories) setCategories(data.categories);
+        alert('Data restored successfully!');
+      } catch (err) {
+        alert('Invalid backup file format.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   return (
@@ -180,7 +223,7 @@ function App() {
         </div>
         <ul className="sidebar-nav">
           <li className={currentView === 'Add Expense' ? 'active' : ''} onClick={() => { setCurrentView('Add Expense'); setIsSidebarOpen(false); }}>
-            Add Expense
+            {editExpenseId ? 'Edit Expense' : 'Add Expense'}
           </li>
           <li className={currentView === 'Dashboard' ? 'active' : ''} onClick={() => { setCurrentView('Dashboard'); setIsSidebarOpen(false); }}>
             Dashboard
@@ -242,17 +285,22 @@ function App() {
               />
               {isCategoryDropdownOpen && (
                 <ul className="custom-dropdown">
-                  {categories.map(cat => (
-                    <li
-                      key={cat}
-                      onClick={() => {
-                        setCategory(cat);
-                        setIsCategoryDropdownOpen(false);
-                      }}
-                    >
-                      {cat}
-                    </li>
-                  ))}
+                  {categories
+                    .filter(cat => cat.toLowerCase().includes(category.toLowerCase()))
+                    .map(cat => (
+                      <li
+                        key={cat}
+                        onClick={() => {
+                          setCategory(cat);
+                          setIsCategoryDropdownOpen(false);
+                        }}
+                      >
+                        {cat}
+                      </li>
+                    ))}
+                  {categories.filter(cat => cat.toLowerCase().includes(category.toLowerCase())).length === 0 && (
+                    <li style={{ color: '#a0aec0', padding: '0.75rem 1rem', fontStyle: 'italic', cursor: 'default' }}>No match found</li>
+                  )}
                 </ul>
               )}
 
@@ -327,7 +375,7 @@ function App() {
               </select>
             </div>
 
-            <button type="submit" className="submit-btn">+ Add Expense</button>
+            <button type="submit" className="submit-btn">{editExpenseId ? 'Update Expense' : '+ Add Expense'}</button>
           </form>
         )}
 
@@ -428,9 +476,12 @@ function App() {
                         {expense.date} • {expense.time}
                       </span>
                     </div>
-                    <div className="expense-action">
+                    <div className="expense-action" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
                       <span className="expense-amount">₹{expense.amount.toFixed(2)}</span>
-                      <button type="button" onClick={() => deleteExpense(expense.id)} className="delete-btn">×</button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button type="button" onClick={() => handleEdit(expense)} style={{ background: '#cbd5e0', color: '#2d3748', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
+                        <button type="button" onClick={() => deleteExpense(expense.id)} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -442,25 +493,21 @@ function App() {
         {currentView === 'Backup & Restore' && (
           <div className="backup-container">
             <h2>Backup & Restore</h2>
-            <p>Save a copy of your expenses and categories, or restore them here.</p>
+            <p>Download a backup file of your expenses and categories, or restore from an existing file.</p>
 
             <button className="submit-btn" onClick={handleBackup} style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-              Create Backup Code
+              Download Backup File
             </button>
 
             <div className="form-group">
-              <label>Backup Data string</label>
-              <textarea
-                value={backupData}
-                onChange={e => setBackupData(e.target.value)}
-                placeholder="Paste backup code here to restore, or click 'Create Backup Code' to generate your backup text."
-                style={{ width: '100%', height: '150px', padding: '1rem', borderRadius: '12px', border: '1px solid #edf2f7', fontFamily: 'monospace' }}
+              <label>Restore from File</label>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleRestoreFile}
+                className="custom-file-input"
               />
             </div>
-
-            <button className="submit-btn" onClick={handleRestore} style={{ background: 'linear-gradient(135deg, #0cebeb 0%, #20e3b2 100%)', color: '#0b3d3d' }}>
-              Restore from Backup Code
-            </button>
           </div>
         )}
 

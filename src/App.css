@@ -517,3 +517,39 @@ body {
   margin-top: -2rem;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
 }
+
+.custom-file-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1.5px dashed #cbd5e0;
+  border-radius: 12px;
+  cursor: pointer;
+  background-color: #f8fafc;
+  color: #4a5568;
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.custom-file-input:hover {
+  border-color: #20e3b2;
+  background-color: #f0fdf4;
+}
+
+.custom-file-input::file-selector-button {
+  padding: 0.6rem 1.2rem;
+  margin-right: 1rem;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.custom-file-input::file-selector-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(56, 239, 125, 0.3);
+}
