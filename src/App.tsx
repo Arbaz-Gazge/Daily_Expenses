@@ -63,6 +63,7 @@ function App() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategoryIdx, setEditingCategoryIdx] = useState<number | null>(null);
   const [newCategory, setNewCategory] = useState('');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
   // Centralized dropdown state for "Popup Mode"
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -397,34 +398,33 @@ function App() {
                 value={category}
                 onChange={(e) => {
                   setCategory(e.target.value);
-                  setActiveDropdown('categorySelect');
+                  setIsCategoryDropdownOpen(true);
                 }}
-                onFocus={() => setActiveDropdown('categorySelect')}
+                onFocus={() => setIsCategoryDropdownOpen(true)}
+                onBlur={() => {
+                  setTimeout(() => setIsCategoryDropdownOpen(false), 200);
+                }}
                 placeholder="Select or type a category"
               />
-              {activeDropdown === 'categorySelect' && (
-                <div className="popup-dropdown-container">
-                  <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                  <ul className="custom-dropdown popup">
-                    <div className="popup-header">Select Category</div>
-                    {categories
-                      .filter(cat => cat.toLowerCase().includes(category.toLowerCase()))
-                      .map(cat => (
-                        <li
-                          key={cat}
-                          onClick={() => {
-                            setCategory(cat);
-                            setActiveDropdown(null);
-                          }}
-                        >
-                          {cat}
-                        </li>
-                      ))}
-                    {categories.filter(cat => cat.toLowerCase().includes(category.toLowerCase())).length === 0 && (
-                      <li style={{ color: '#a0aec0', padding: '0.75rem 1rem', fontStyle: 'italic', cursor: 'default' }}>No match found</li>
-                    )}
-                  </ul>
-                </div>
+              {isCategoryDropdownOpen && (
+                <ul className="custom-dropdown">
+                  {categories
+                    .filter(cat => cat.toLowerCase().includes(category.toLowerCase()))
+                    .map(cat => (
+                      <li
+                        key={cat}
+                        onClick={() => {
+                          setCategory(cat);
+                          setIsCategoryDropdownOpen(false);
+                        }}
+                      >
+                        {cat}
+                      </li>
+                    ))}
+                  {categories.filter(cat => cat.toLowerCase().includes(category.toLowerCase())).length === 0 && (
+                    <li style={{ color: '#a0aec0', padding: '0.75rem 1rem', fontStyle: 'italic', cursor: 'default' }}>No match found</li>
+                  )}
+                </ul>
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
