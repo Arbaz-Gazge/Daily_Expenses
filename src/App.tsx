@@ -63,13 +63,9 @@ function App() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategoryIdx, setEditingCategoryIdx] = useState<number | null>(null);
   const [newCategory, setNewCategory] = useState('');
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
-  // Custom Select states
-  const [isPaymentModeOpen, setIsPaymentModeOpen] = useState(false);
-  const [isCategoryFilterOpen, setIsCategoryFilterOpen] = useState(false);
-  const [isPaymentFilterOpen, setIsPaymentFilterOpen] = useState(false);
-  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
+  // Centralized dropdown state for "Popup Mode"
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -401,33 +397,34 @@ function App() {
                 value={category}
                 onChange={(e) => {
                   setCategory(e.target.value);
-                  setIsCategoryDropdownOpen(true);
+                  setActiveDropdown('categorySelect');
                 }}
-                onFocus={() => setIsCategoryDropdownOpen(true)}
-                onBlur={() => {
-                  setTimeout(() => setIsCategoryDropdownOpen(false), 200);
-                }}
+                onFocus={() => setActiveDropdown('categorySelect')}
                 placeholder="Select or type a category"
               />
-              {isCategoryDropdownOpen && (
-                <ul className="custom-dropdown">
-                  {categories
-                    .filter(cat => cat.toLowerCase().includes(category.toLowerCase()))
-                    .map(cat => (
-                      <li
-                        key={cat}
-                        onClick={() => {
-                          setCategory(cat);
-                          setIsCategoryDropdownOpen(false);
-                        }}
-                      >
-                        {cat}
-                      </li>
-                    ))}
-                  {categories.filter(cat => cat.toLowerCase().includes(category.toLowerCase())).length === 0 && (
-                    <li style={{ color: '#a0aec0', padding: '0.75rem 1rem', fontStyle: 'italic', cursor: 'default' }}>No match found</li>
-                  )}
-                </ul>
+              {activeDropdown === 'categorySelect' && (
+                <div className="popup-dropdown-container">
+                  <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                  <ul className="custom-dropdown popup">
+                    <div className="popup-header">Select Category</div>
+                    {categories
+                      .filter(cat => cat.toLowerCase().includes(category.toLowerCase()))
+                      .map(cat => (
+                        <li
+                          key={cat}
+                          onClick={() => {
+                            setCategory(cat);
+                            setActiveDropdown(null);
+                          }}
+                        >
+                          {cat}
+                        </li>
+                      ))}
+                    {categories.filter(cat => cat.toLowerCase().includes(category.toLowerCase())).length === 0 && (
+                      <li style={{ color: '#a0aec0', padding: '0.75rem 1rem', fontStyle: 'italic', cursor: 'default' }}>No match found</li>
+                    )}
+                  </ul>
+                </div>
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
@@ -466,17 +463,21 @@ function App() {
               <label>Payment Mode (Optional)</label>
               <div className="custom-select-wrapper">
                 <div 
-                  className={`custom-select-trigger ${isPaymentModeOpen ? 'open' : ''}`}
-                  onClick={() => setIsPaymentModeOpen(!isPaymentModeOpen)}
+                  className={`custom-select-trigger ${activeDropdown === 'paymentMode' ? 'open' : ''}`}
+                  onClick={() => setActiveDropdown('paymentMode')}
                 >
                   {paymentMode || 'Select Mode'}
                 </div>
-                {isPaymentModeOpen && (
-                  <ul className="custom-dropdown">
-                    {['Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other'].map(mode => (
-                      <li key={mode} onClick={() => { setPaymentMode(mode); setIsPaymentModeOpen(false); }}>{mode}</li>
-                    ))}
-                  </ul>
+                {activeDropdown === 'paymentMode' && (
+                  <div className="popup-dropdown-container">
+                    <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                    <ul className="custom-dropdown popup">
+                      <div className="popup-header">Payment Mode</div>
+                      {['Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other'].map(mode => (
+                        <li key={mode} onClick={() => { setPaymentMode(mode); setActiveDropdown(null); }}>{mode}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             </div>
@@ -500,19 +501,23 @@ function App() {
                     <label>Category</label>
                     <div className="custom-select-wrapper">
                       <div 
-                        className={`custom-select-trigger filter-select ${isCategoryFilterOpen ? 'open' : ''}`}
-                        onClick={() => setIsCategoryFilterOpen(!isCategoryFilterOpen)}
+                        className={`custom-select-trigger filter-select ${activeDropdown === 'catFilter' ? 'open' : ''}`}
+                        onClick={() => setActiveDropdown('catFilter')}
                       >
                         {categoryFilter === 'All' ? 'All Categories' : categoryFilter}
                       </div>
-                      {isCategoryFilterOpen && (
-                        <ul className="custom-dropdown">
-                          <li onClick={() => { setCategoryFilter('All'); setIsCategoryFilterOpen(false); }}>All Categories</li>
-                          {categories.map(cat => (
-                            <li key={cat} onClick={() => { setCategoryFilter(cat); setIsCategoryFilterOpen(false); }}>{cat}</li>
-                          ))}
-                          <li onClick={() => { setCategoryFilter('Uncategorized'); setIsCategoryFilterOpen(false); }}>Uncategorized</li>
-                        </ul>
+                      {activeDropdown === 'catFilter' && (
+                        <div className="popup-dropdown-container">
+                          <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                          <ul className="custom-dropdown popup">
+                            <div className="popup-header">Filter by Category</div>
+                            <li onClick={() => { setCategoryFilter('All'); setActiveDropdown(null); }}>All Categories</li>
+                            {categories.map(cat => (
+                              <li key={cat} onClick={() => { setCategoryFilter(cat); setActiveDropdown(null); }}>{cat}</li>
+                            ))}
+                            <li onClick={() => { setCategoryFilter('Uncategorized'); setActiveDropdown(null); }}>Uncategorized</li>
+                          </ul>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -521,19 +526,23 @@ function App() {
                     <label>Payment Mode</label>
                     <div className="custom-select-wrapper">
                       <div 
-                        className={`custom-select-trigger filter-select ${isPaymentFilterOpen ? 'open' : ''}`}
-                        onClick={() => setIsPaymentFilterOpen(!isPaymentFilterOpen)}
+                        className={`custom-select-trigger filter-select ${activeDropdown === 'payFilter' ? 'open' : ''}`}
+                        onClick={() => setActiveDropdown('payFilter')}
                       >
                         {paymentModeFilter === 'All' ? 'All Modes' : paymentModeFilter}
                       </div>
-                      {isPaymentFilterOpen && (
-                        <ul className="custom-dropdown">
-                          {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified'].map(mode => (
-                            <li key={mode} onClick={() => { setPaymentModeFilter(mode); setIsPaymentFilterOpen(false); }}>
-                              {mode === 'All' ? 'All Modes' : mode}
-                            </li>
-                          ))}
-                        </ul>
+                      {activeDropdown === 'payFilter' && (
+                        <div className="popup-dropdown-container">
+                          <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                          <ul className="custom-dropdown popup">
+                            <div className="popup-header">Filter by Payment Mode</div>
+                            {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified'].map(mode => (
+                              <li key={mode} onClick={() => { setPaymentModeFilter(mode); setActiveDropdown(null); }}>
+                                {mode === 'All' ? 'All Modes' : mode}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -542,23 +551,27 @@ function App() {
                     <label>Date Range</label>
                     <div className="custom-select-wrapper">
                       <div 
-                        className={`custom-select-trigger filter-select ${isDateFilterOpen ? 'open' : ''}`}
-                        onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
+                        className={`custom-select-trigger filter-select ${activeDropdown === 'dateFilter' ? 'open' : ''}`}
+                        onClick={() => setActiveDropdown('dateFilter')}
                       >
                         {dateFilter === 'All' ? 'All Dates' : dateFilter === 'Custom' ? 'Custom / Month' : dateFilter}
                       </div>
-                      {isDateFilterOpen && (
-                        <ul className="custom-dropdown">
-                          {['All', 'Today', 'Yesterday', 'Tomorrow', 'Custom'].map(range => (
-                            <li key={range} onClick={() => { 
-                              setDateFilter(range); 
-                              if (range !== 'Custom') setCustomDateFilter('');
-                              setIsDateFilterOpen(false); 
-                            }}>
-                              {range === 'All' ? 'All Dates' : range === 'Custom' ? 'Custom / Month' : range}
-                            </li>
-                          ))}
-                        </ul>
+                      {activeDropdown === 'dateFilter' && (
+                        <div className="popup-dropdown-container">
+                          <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                          <ul className="custom-dropdown popup">
+                            <div className="popup-header">Filter by Date</div>
+                            {['All', 'Today', 'Yesterday', 'Tomorrow', 'Custom'].map(range => (
+                              <li key={range} onClick={() => { 
+                                setDateFilter(range); 
+                                if (range !== 'Custom') setCustomDateFilter('');
+                                setActiveDropdown(null); 
+                              }}>
+                                {range === 'All' ? 'All Dates' : range === 'Custom' ? 'Custom / Month' : range}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
                     </div>
                   </div>
