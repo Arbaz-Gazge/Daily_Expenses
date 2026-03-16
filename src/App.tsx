@@ -111,6 +111,15 @@ function App() {
           document.body.classList.remove('dark-mode');
         }
       }
+      const savedFilters = await Preferences.get({ key: 'filters' });
+      if (savedFilters.value) {
+        const filtersData = JSON.parse(savedFilters.value);
+        if (filtersData.categoryFilter) setCategoryFilter(filtersData.categoryFilter);
+        if (filtersData.dateFilter) setDateFilter(filtersData.dateFilter);
+        if (filtersData.customDateFilter) setCustomDateFilter(filtersData.customDateFilter);
+        if (filtersData.paymentModeFilter) setPaymentModeFilter(filtersData.paymentModeFilter);
+      }
+
       setDataLoaded(true);
     };
     loadData();
@@ -141,6 +150,12 @@ function App() {
       document.body.classList.remove('dark-mode');
     }
   }, [settings, dataLoaded]);
+
+  useEffect(() => {
+    if (!dataLoaded) return;
+    const filters = { categoryFilter, dateFilter, customDateFilter, paymentModeFilter };
+    Preferences.set({ key: 'filters', value: JSON.stringify(filters) });
+  }, [categoryFilter, dateFilter, customDateFilter, paymentModeFilter, dataLoaded]);
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
