@@ -47,6 +47,7 @@ function App() {
 
   // UI States
   const [isLoading, setIsLoading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const defaultCategories = [
@@ -82,8 +83,16 @@ function App() {
       }
       const savedSettings = await Preferences.get({ key: 'settings' });
       if (savedSettings.value) {
-        setSettings(JSON.parse(savedSettings.value));
+        const settingsData = JSON.parse(savedSettings.value);
+        setSettings(settingsData);
+        // Apply theme immediately on load
+        if (settingsData.theme === 'dark') {
+          document.body.classList.add('dark-mode');
+        } else {
+          document.body.classList.remove('dark-mode');
+        }
       }
+      setDataLoaded(true);
     };
     loadData();
 
@@ -104,13 +113,15 @@ function App() {
   }, [categories]);
 
   useEffect(() => {
+    if (!dataLoaded) return; // Prevent overwriting storage with defaults on first mount
+
     Preferences.set({ key: 'settings', value: JSON.stringify(settings) });
     if (settings.theme === 'dark') {
       document.body.classList.add('dark-mode');
     } else {
       document.body.classList.remove('dark-mode');
     }
-  }, [settings]);
+  }, [settings, dataLoaded]);
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
