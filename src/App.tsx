@@ -60,9 +60,16 @@ function App() {
     "Other",
   ];
   const [categories, setCategories] = useState<string[]>([]);
-  const [isManagingCategories, setIsManagingCategories] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategoryIdx, setEditingCategoryIdx] = useState<number | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+
+  // Custom Select states
+  const [isPaymentModeOpen, setIsPaymentModeOpen] = useState(false);
+  const [isCategoryFilterOpen, setIsCategoryFilterOpen] = useState(false);
+  const [isPaymentFilterOpen, setIsPaymentFilterOpen] = useState(false);
+  const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -174,14 +181,50 @@ function App() {
   };
 
   const addCategory = () => {
-    if (newCategory.trim() && !categories.includes(newCategory.trim())) {
-      setCategories([...categories, newCategory.trim()]);
+    if (newCategory.trim()) {
+      const trimmedName = newCategory.trim();
+      if (editingCategoryIdx !== null) {
+        // Edit existing
+        const oldName = categories[editingCategoryIdx];
+        if (oldName === trimmedName) {
+          setEditingCategoryIdx(null);
+          setNewCategory('');
+          return;
+        }
+
+        const updatedCategories = [...categories];
+        updatedCategories[editingCategoryIdx] = trimmedName;
+        setCategories(updatedCategories);
+
+        // Update all expenses with this category
+        setExpenses(expenses.map(exp => 
+          exp.category === oldName ? { ...exp, category: trimmedName } : exp
+        ));
+
+        // Update filter if active
+        if (categoryFilter === oldName) setCategoryFilter(trimmedName);
+        if (category === oldName) setCategory(trimmedName);
+
+        setEditingCategoryIdx(null);
+      } else {
+        // Add new
+        if (!categories.includes(trimmedName)) {
+          setCategories([...categories, trimmedName]);
+        }
+      }
       setNewCategory('');
     }
   };
 
   const deleteCategory = (catToDelete: string) => {
     setCategories(categories.filter(cat => cat !== catToDelete));
+    if (categoryFilter === catToDelete) setCategoryFilter('All');
+    if (category === catToDelete) setCategory('');
+  };
+
+  const startEditCategory = (index: number) => {
+    setEditingCategoryIdx(index);
+    setNewCategory(categories[index]);
   };
 
   const filteredExpenses = expenses.filter(expense => {
@@ -390,34 +433,12 @@ function App() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
                 <button
                   type="button"
-                  onClick={() => setIsManagingCategories(!isManagingCategories)}
+                  onClick={() => setIsCategoryModalOpen(true)}
                   style={{ background: 'none', border: 'none', color: '#11998e', fontSize: '0.85rem', cursor: 'pointer', padding: 0, fontWeight: 500 }}
                 >
-                  {isManagingCategories ? 'Close Category Manager' : 'Manage Categories'}
+                  Manage Categories
                 </button>
               </div>
-              {isManagingCategories && (
-                <div className="category-manager" style={{ marginTop: '0.5rem', background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <input
-                      type="text"
-                      value={newCategory}
-                      onChange={e => setNewCategory(e.target.value)}
-                      placeholder="New category name"
-                      style={{ flex: 1, padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '4px' }}
-                    />
-                    <button type="button" onClick={addCategory} style={{ background: '#11998e', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}>Add</button>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {categories.map(cat => (
-                      <span key={cat} style={{ background: '#e2e8f0', color: '#4a5568', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 500 }}>
-                        {cat}
-                        <button type="button" onClick={() => deleteCategory(cat)} style={{ background: 'none', border: 'none', color: '#e53e3e', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 0.5 }}>×</button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="form-row">
@@ -443,19 +464,21 @@ function App() {
 
             <div className="form-group">
               <label>Payment Mode (Optional)</label>
-              <select
-                value={paymentMode}
-                onChange={(e) => setPaymentMode(e.target.value)}
-                className="custom-select"
-              >
-                <option value="">Select Mode</option>
-                <option value="Cash">Cash</option>
-                <option value="Credit Card">Credit Card</option>
-                <option value="Debit Card">Debit Card</option>
-                <option value="UPI">UPI</option>
-                <option value="Net Banking">Net Banking</option>
-                <option value="Other">Other</option>
-              </select>
+              <div className="custom-select-wrapper">
+                <div 
+                  className={`custom-select-trigger ${isPaymentModeOpen ? 'open' : ''}`}
+                  onClick={() => setIsPaymentModeOpen(!isPaymentModeOpen)}
+                >
+                  {paymentMode || 'Select Mode'}
+                </div>
+                {isPaymentModeOpen && (
+                  <ul className="custom-dropdown">
+                    {['Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other'].map(mode => (
+                      <li key={mode} onClick={() => { setPaymentMode(mode); setIsPaymentModeOpen(false); }}>{mode}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
             <button type="submit" className="submit-btn">{editExpenseId ? 'Update Expense' : '+ Add Expense'}</button>
@@ -475,39 +498,69 @@ function App() {
                 <div className="filters-grid">
                   <div className="filter-item">
                     <label>Category</label>
-                    <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="custom-select filter-select">
-                      <option value="All">All Categories</option>
-                      {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                      <option value="Uncategorized">Uncategorized</option>
-                    </select>
+                    <div className="custom-select-wrapper">
+                      <div 
+                        className={`custom-select-trigger filter-select ${isCategoryFilterOpen ? 'open' : ''}`}
+                        onClick={() => setIsCategoryFilterOpen(!isCategoryFilterOpen)}
+                      >
+                        {categoryFilter === 'All' ? 'All Categories' : categoryFilter}
+                      </div>
+                      {isCategoryFilterOpen && (
+                        <ul className="custom-dropdown">
+                          <li onClick={() => { setCategoryFilter('All'); setIsCategoryFilterOpen(false); }}>All Categories</li>
+                          {categories.map(cat => (
+                            <li key={cat} onClick={() => { setCategoryFilter(cat); setIsCategoryFilterOpen(false); }}>{cat}</li>
+                          ))}
+                          <li onClick={() => { setCategoryFilter('Uncategorized'); setIsCategoryFilterOpen(false); }}>Uncategorized</li>
+                        </ul>
+                      )}
+                    </div>
                   </div>
 
                   <div className="filter-item">
                     <label>Payment Mode</label>
-                    <select value={paymentModeFilter} onChange={(e) => setPaymentModeFilter(e.target.value)} className="custom-select filter-select">
-                      <option value="All">All Modes</option>
-                      <option value="Cash">Cash</option>
-                      <option value="Credit Card">Credit Card</option>
-                      <option value="Debit Card">Debit Card</option>
-                      <option value="UPI">UPI</option>
-                      <option value="Net Banking">Net Banking</option>
-                      <option value="Other">Other</option>
-                      <option value="Not Specified">Not Specified</option>
-                    </select>
+                    <div className="custom-select-wrapper">
+                      <div 
+                        className={`custom-select-trigger filter-select ${isPaymentFilterOpen ? 'open' : ''}`}
+                        onClick={() => setIsPaymentFilterOpen(!isPaymentFilterOpen)}
+                      >
+                        {paymentModeFilter === 'All' ? 'All Modes' : paymentModeFilter}
+                      </div>
+                      {isPaymentFilterOpen && (
+                        <ul className="custom-dropdown">
+                          {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified'].map(mode => (
+                            <li key={mode} onClick={() => { setPaymentModeFilter(mode); setIsPaymentFilterOpen(false); }}>
+                              {mode === 'All' ? 'All Modes' : mode}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </div>
 
                   <div className="filter-item">
-                    <label>Date</label>
-                    <select value={dateFilter} onChange={(e) => {
-                      setDateFilter(e.target.value);
-                      if (e.target.value !== 'Custom') setCustomDateFilter('');
-                    }} className="custom-select filter-select">
-                      <option value="All">All Dates</option>
-                      <option value="Today">Today</option>
-                      <option value="Yesterday">Yesterday</option>
-                      <option value="Tomorrow">Tomorrow</option>
-                      <option value="Custom">Custom / Month</option>
-                    </select>
+                    <label>Date Range</label>
+                    <div className="custom-select-wrapper">
+                      <div 
+                        className={`custom-select-trigger filter-select ${isDateFilterOpen ? 'open' : ''}`}
+                        onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
+                      >
+                        {dateFilter === 'All' ? 'All Dates' : dateFilter === 'Custom' ? 'Custom / Month' : dateFilter}
+                      </div>
+                      {isDateFilterOpen && (
+                        <ul className="custom-dropdown">
+                          {['All', 'Today', 'Yesterday', 'Tomorrow', 'Custom'].map(range => (
+                            <li key={range} onClick={() => { 
+                              setDateFilter(range); 
+                              if (range !== 'Custom') setCustomDateFilter('');
+                              setIsDateFilterOpen(false); 
+                            }}>
+                              {range === 'All' ? 'All Dates' : range === 'Custom' ? 'Custom / Month' : range}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </div>
 
                   {dateFilter === 'Custom' && (
@@ -639,6 +692,45 @@ function App() {
             <div className="modal-actions">
               <button className="modal-btn cancel" onClick={() => setDeleteId(null)}>Cancel</button>
               <button className="modal-btn delete" onClick={() => deleteExpense(deleteId)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Category Manager Modal */}
+      {isCategoryModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal category-modal">
+            <div className="modal-header">
+              <h3>Manage Categories</h3>
+              <button className="close-btn" style={{ position: 'static', color: 'var(--text-primary)' }} onClick={() => { setIsCategoryModalOpen(false); setEditingCategoryIdx(null); setNewCategory(''); }}>&times;</button>
+            </div>
+            
+            <div className="category-input-group">
+              <input
+                type="text"
+                value={newCategory}
+                onChange={e => setNewCategory(e.target.value)}
+                placeholder={editingCategoryIdx !== null ? "Edit category name" : "New category name"}
+                className="category-modal-input"
+              />
+              <button type="button" onClick={addCategory} className="modal-action-btn primary">
+                {editingCategoryIdx !== null ? 'Update' : 'Add'}
+              </button>
+              {editingCategoryIdx !== null && (
+                <button type="button" onClick={() => { setEditingCategoryIdx(null); setNewCategory(''); }} className="modal-action-btn secondary">Cancel</button>
+              )}
+            </div>
+
+            <div className="category-list-scroll">
+              {categories.map((cat, idx) => (
+                <div key={cat} className="category-list-item">
+                  <span className="cat-name">{cat}</span>
+                  <div className="cat-actions">
+                    <button type="button" className="cat-btn edit" onClick={() => startEditCategory(idx)}>Edit</button>
+                    <button type="button" className="cat-btn delete" onClick={() => deleteCategory(cat)}>Delete</button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
