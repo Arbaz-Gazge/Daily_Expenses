@@ -67,6 +67,23 @@ function App() {
   const [editingCategoryIdx, setEditingCategoryIdx] = useState<number | null>(null);
   const [newCategory, setNewCategory] = useState('');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [showNumPad, setShowNumPad] = useState(false);
+
+  const handleNumPadPress = (value: string) => {
+    if (value === 'back') {
+      setAmount(amount.slice(0, -1));
+    } else if (value === '.') {
+      if (!amount.includes('.')) {
+        setAmount(amount === '' ? '0.' : amount + '.');
+      }
+    } else {
+      if (amount.includes('.')) {
+        const [, decimal] = amount.split('.');
+        if (decimal && decimal.length >= 2) return;
+      }
+      setAmount(amount === '0' ? value : amount + value);
+    }
+  };
 
   // Centralized dropdown state for "Popup Mode"
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -211,7 +228,7 @@ function App() {
         setCategories(updatedCategories);
 
         // Update all expenses with this category
-        setExpenses(expenses.map(exp => 
+        setExpenses(expenses.map(exp =>
           exp.category === oldName ? { ...exp, category: trimmedName } : exp
         ));
 
@@ -384,348 +401,352 @@ function App() {
         ) : (
           <>
             {currentView === 'Add Expense' && (
-          <form className="expense-form" onSubmit={addExpense}>
-            <div className="form-group">
-              <label>Amount</label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                step="0.01"
-                required
-              />
-            </div>
+              <form className="expense-form" onSubmit={addExpense}>
+                <div className="form-group">
+                  <label>Amount</label>
+                  <input
+                    type="text"
+                    inputMode="none"
+                    value={amount}
+                    onFocus={(e) => {
+                      e.target.blur();
+                      setShowNumPad(true);
+                    }}
+                    onClick={() => setShowNumPad(true)}
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
 
-            <div className="form-group">
-              <label>Description</label>
-              <input
-                type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g. Groceries"
-                required
-              />
-            </div>
+                <div className="form-group">
+                  <label>Description</label>
+                  <input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="e.g. Groceries"
+                    required
+                  />
+                </div>
 
-            <div className="form-group" style={{ position: 'relative' }}>
-              <label>Category</label>
-              <input
-                type="text"
-                value={category}
-                onChange={(e) => {
-                  setCategory(e.target.value);
-                  setIsCategoryDropdownOpen(true);
-                }}
-                onFocus={() => setIsCategoryDropdownOpen(true)}
-                onBlur={() => {
-                  setTimeout(() => setIsCategoryDropdownOpen(false), 200);
-                }}
-                placeholder="Select or type a category"
-              />
-              {isCategoryDropdownOpen && (
-                <ul className="custom-dropdown">
-                  {categories
-                    .filter(cat => cat.toLowerCase().includes(category.toLowerCase()))
-                    .map(cat => (
-                      <li
-                        key={cat}
+                <div className="form-group" style={{ position: 'relative' }}>
+                  <label>Category</label>
+                  <input
+                    type="text"
+                    value={category}
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      setIsCategoryDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsCategoryDropdownOpen(true)}
+                    onBlur={() => {
+                      setTimeout(() => setIsCategoryDropdownOpen(false), 200);
+                    }}
+                    placeholder="Select or type a category"
+                  />
+                  {isCategoryDropdownOpen && (
+                    <ul className="custom-dropdown">
+                      {categories
+                        .filter(cat => cat.toLowerCase().includes(category.toLowerCase()))
+                        .map(cat => (
+                          <li
+                            key={cat}
+                            onClick={() => {
+                              setCategory(cat);
+                              setIsCategoryDropdownOpen(false);
+                            }}
+                          >
+                            {cat}
+                          </li>
+                        ))}
+                      {categories.filter(cat => cat.toLowerCase().includes(category.toLowerCase())).length === 0 && (
+                        <li style={{ color: '#a0aec0', padding: '0.75rem 1rem', fontStyle: 'italic', cursor: 'default' }}>No match found</li>
+                      )}
+                    </ul>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsCategoryModalOpen(true)}
+                      style={{ background: 'none', border: 'none', color: '#11998e', fontSize: '0.85rem', cursor: 'pointer', padding: 0, fontWeight: 500 }}
+                    >
+                      Manage Categories
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group half">
+                    <label>Date</label>
+                    <input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group half">
+                    <label>Time</label>
+                    <input
+                      type="time"
+                      value={time}
+                      onChange={(e) => setTime(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Payment Mode (Optional)</label>
+                  <div className="custom-select-wrapper">
+                    <div
+                      className={`custom-select-trigger ${activeDropdown === 'paymentMode' ? 'open' : ''}`}
+                      onClick={() => setActiveDropdown('paymentMode')}
+                    >
+                      {paymentMode || 'Select Mode'}
+                    </div>
+                    {activeDropdown === 'paymentMode' && (
+                      <div className="popup-dropdown-container">
+                        <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                        <ul className="custom-dropdown popup">
+                          <div className="popup-header">Payment Mode</div>
+                          {['Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other'].map(mode => (
+                            <li key={mode} onClick={() => { setPaymentMode(mode); setActiveDropdown(null); }}>{mode}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Note / Remark (Optional)</label>
+                  <textarea
+                    value={remark}
+                    onChange={(e) => setRemark(e.target.value)}
+                    placeholder="Add a note or remark..."
+                    rows={2}
+                    className="custom-textarea"
+                  ></textarea>
+                </div>
+
+                <button type="submit" className="submit-btn">{editExpenseId ? 'Update Expense' : '+ Add Expense'}</button>
+              </form>
+            )}
+
+            {currentView === 'Dashboard' && (
+              <>
+                <div className="total-expense-card">
+                  <h2>Total Expense</h2>
+                  <div className="amount">₹{totalExpense.toFixed(2)}</div>
+                </div>
+
+                <div className="expenses-list">
+                  <div className="filters-container">
+                    <h3 className="filters-title">Filters</h3>
+                    <div className="filters-grid">
+                      <div className="filter-item">
+                        <label>Category</label>
+                        <div className="custom-select-wrapper">
+                          <div
+                            className={`custom-select-trigger filter-select ${activeDropdown === 'catFilter' ? 'open' : ''}`}
+                            onClick={() => setActiveDropdown('catFilter')}
+                          >
+                            {categoryFilter === 'All' ? 'All Categories' : categoryFilter}
+                          </div>
+                          {activeDropdown === 'catFilter' && (
+                            <div className="popup-dropdown-container">
+                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                              <ul className="custom-dropdown popup">
+                                <div className="popup-header">Filter by Category</div>
+                                <li onClick={() => { setCategoryFilter('All'); setActiveDropdown(null); }}>All Categories</li>
+                                {categories.map(cat => (
+                                  <li key={cat} onClick={() => { setCategoryFilter(cat); setActiveDropdown(null); }}>{cat}</li>
+                                ))}
+                                <li onClick={() => { setCategoryFilter('Uncategorized'); setActiveDropdown(null); }}>Uncategorized</li>
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="filter-item">
+                        <label>Payment Mode</label>
+                        <div className="custom-select-wrapper">
+                          <div
+                            className={`custom-select-trigger filter-select ${activeDropdown === 'payFilter' ? 'open' : ''}`}
+                            onClick={() => setActiveDropdown('payFilter')}
+                          >
+                            {paymentModeFilter === 'All' ? 'All Modes' : paymentModeFilter}
+                          </div>
+                          {activeDropdown === 'payFilter' && (
+                            <div className="popup-dropdown-container">
+                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                              <ul className="custom-dropdown popup">
+                                <div className="popup-header">Filter by Payment Mode</div>
+                                {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified'].map(mode => (
+                                  <li key={mode} onClick={() => { setPaymentModeFilter(mode); setActiveDropdown(null); }}>
+                                    {mode === 'All' ? 'All Modes' : mode}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="filter-item">
+                        <label>Date Range</label>
+                        <div className="custom-select-wrapper">
+                          <div
+                            className={`custom-select-trigger filter-select ${activeDropdown === 'dateFilter' ? 'open' : ''}`}
+                            onClick={() => setActiveDropdown('dateFilter')}
+                          >
+                            {dateFilter === 'All' ? 'All Dates' : dateFilter === 'Custom' ? 'Custom / Month' : dateFilter}
+                          </div>
+                          {activeDropdown === 'dateFilter' && (
+                            <div className="popup-dropdown-container">
+                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                              <ul className="custom-dropdown popup">
+                                <div className="popup-header">Filter by Date</div>
+                                {['All', 'Today', 'Yesterday', 'Tomorrow', 'Custom'].map(range => (
+                                  <li key={range} onClick={() => {
+                                    setDateFilter(range);
+                                    if (range !== 'Custom') setCustomDateFilter('');
+                                    setActiveDropdown(null);
+                                  }}>
+                                    {range === 'All' ? 'All Dates' : range === 'Custom' ? 'Custom / Month' : range}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {dateFilter === 'Custom' && (
+                        <div className="filter-item">
+                          <label>Select Month/Date</label>
+                          <input
+                            type="month"
+                            value={customDateFilter}
+                            onChange={(e) => setCustomDateFilter(e.target.value)}
+                            className="filter-input"
+                          />
+                          <span style={{ fontSize: '0.75rem', color: '#718096', marginTop: '0.25rem', display: 'block' }}>
+                            Or type YYYY-MM-DD for specific day
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {(categoryFilter !== 'All' || paymentModeFilter !== 'All' || dateFilter !== 'All') && (
+                      <button
+                        type="button"
+                        className="clear-filters-btn"
                         onClick={() => {
-                          setCategory(cat);
-                          setIsCategoryDropdownOpen(false);
+                          setCategoryFilter('All');
+                          setPaymentModeFilter('All');
+                          setDateFilter('All');
+                          setCustomDateFilter('');
                         }}
                       >
-                        {cat}
-                      </li>
-                    ))}
-                  {categories.filter(cat => cat.toLowerCase().includes(category.toLowerCase())).length === 0 && (
-                    <li style={{ color: '#a0aec0', padding: '0.75rem 1rem', fontStyle: 'italic', cursor: 'default' }}>No match found</li>
-                  )}
-                </ul>
-              )}
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryModalOpen(true)}
-                  style={{ background: 'none', border: 'none', color: '#11998e', fontSize: '0.85rem', cursor: 'pointer', padding: 0, fontWeight: 500 }}
-                >
-                  Manage Categories
-                </button>
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group half">
-                <label>Date</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="form-group half">
-                <label>Time</label>
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Payment Mode (Optional)</label>
-              <div className="custom-select-wrapper">
-                <div 
-                  className={`custom-select-trigger ${activeDropdown === 'paymentMode' ? 'open' : ''}`}
-                  onClick={() => setActiveDropdown('paymentMode')}
-                >
-                  {paymentMode || 'Select Mode'}
-                </div>
-                {activeDropdown === 'paymentMode' && (
-                  <div className="popup-dropdown-container">
-                    <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                    <ul className="custom-dropdown popup">
-                      <div className="popup-header">Payment Mode</div>
-                      {['Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other'].map(mode => (
-                        <li key={mode} onClick={() => { setPaymentMode(mode); setActiveDropdown(null); }}>{mode}</li>
-                      ))}
-                    </ul>
+                        Clear Filters
+                      </button>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
 
-            <div className="form-group">
-              <label>Note / Remark (Optional)</label>
-              <textarea
-                value={remark}
-                onChange={(e) => setRemark(e.target.value)}
-                placeholder="Add a note or remark..."
-                rows={2}
-                className="custom-textarea"
-              ></textarea>
-            </div>
-
-            <button type="submit" className="submit-btn">{editExpenseId ? 'Update Expense' : '+ Add Expense'}</button>
-          </form>
-        )}
-
-        {currentView === 'Dashboard' && (
-          <>
-            <div className="total-expense-card">
-              <h2>Total Expense</h2>
-              <div className="amount">₹{totalExpense.toFixed(2)}</div>
-            </div>
-
-            <div className="expenses-list">
-              <div className="filters-container">
-                <h3 className="filters-title">Filters</h3>
-                <div className="filters-grid">
-                  <div className="filter-item">
-                    <label>Category</label>
-                    <div className="custom-select-wrapper">
-                      <div 
-                        className={`custom-select-trigger filter-select ${activeDropdown === 'catFilter' ? 'open' : ''}`}
-                        onClick={() => setActiveDropdown('catFilter')}
-                      >
-                        {categoryFilter === 'All' ? 'All Categories' : categoryFilter}
-                      </div>
-                      {activeDropdown === 'catFilter' && (
-                        <div className="popup-dropdown-container">
-                          <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                          <ul className="custom-dropdown popup">
-                            <div className="popup-header">Filter by Category</div>
-                            <li onClick={() => { setCategoryFilter('All'); setActiveDropdown(null); }}>All Categories</li>
-                            {categories.map(cat => (
-                              <li key={cat} onClick={() => { setCategoryFilter(cat); setActiveDropdown(null); }}>{cat}</li>
-                            ))}
-                            <li onClick={() => { setCategoryFilter('Uncategorized'); setActiveDropdown(null); }}>Uncategorized</li>
-                          </ul>
+                  <h2>Filtered Expenses</h2>
+                  {sortedExpenses.length === 0 ? (
+                    <p className="no-expenses">No expenses found.</p>
+                  ) : (
+                    sortedExpenses.map(expense => (
+                      <div key={expense.id} className="expense-card">
+                        <div className="expense-info">
+                          <h3 className="expense-desc">{expense.description}</h3>
+                          <span className="expense-datetime">
+                            {expense.category && <span className="expense-category-badge">{expense.category}</span>}
+                            {expense.paymentMode && expense.paymentMode !== 'Not Specified' && (
+                              <span className="expense-payment-badge">{expense.paymentMode}</span>
+                            )}
+                            <div style={{ width: '100%', height: '4px' }}></div>
+                            {expense.date} • {expense.time}
+                            {expense.remark && (
+                              <div className="expense-remark">
+                                <span className="remark-icon">📝</span> {expense.remark}
+                              </div>
+                            )}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="filter-item">
-                    <label>Payment Mode</label>
-                    <div className="custom-select-wrapper">
-                      <div 
-                        className={`custom-select-trigger filter-select ${activeDropdown === 'payFilter' ? 'open' : ''}`}
-                        onClick={() => setActiveDropdown('payFilter')}
-                      >
-                        {paymentModeFilter === 'All' ? 'All Modes' : paymentModeFilter}
-                      </div>
-                      {activeDropdown === 'payFilter' && (
-                        <div className="popup-dropdown-container">
-                          <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                          <ul className="custom-dropdown popup">
-                            <div className="popup-header">Filter by Payment Mode</div>
-                            {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified'].map(mode => (
-                              <li key={mode} onClick={() => { setPaymentModeFilter(mode); setActiveDropdown(null); }}>
-                                {mode === 'All' ? 'All Modes' : mode}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="filter-item">
-                    <label>Date Range</label>
-                    <div className="custom-select-wrapper">
-                      <div 
-                        className={`custom-select-trigger filter-select ${activeDropdown === 'dateFilter' ? 'open' : ''}`}
-                        onClick={() => setActiveDropdown('dateFilter')}
-                      >
-                        {dateFilter === 'All' ? 'All Dates' : dateFilter === 'Custom' ? 'Custom / Month' : dateFilter}
-                      </div>
-                      {activeDropdown === 'dateFilter' && (
-                        <div className="popup-dropdown-container">
-                          <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                          <ul className="custom-dropdown popup">
-                            <div className="popup-header">Filter by Date</div>
-                            {['All', 'Today', 'Yesterday', 'Tomorrow', 'Custom'].map(range => (
-                              <li key={range} onClick={() => { 
-                                setDateFilter(range); 
-                                if (range !== 'Custom') setCustomDateFilter('');
-                                setActiveDropdown(null); 
-                              }}>
-                                {range === 'All' ? 'All Dates' : range === 'Custom' ? 'Custom / Month' : range}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {dateFilter === 'Custom' && (
-                    <div className="filter-item">
-                      <label>Select Month/Date</label>
-                      <input
-                        type="month"
-                        value={customDateFilter}
-                        onChange={(e) => setCustomDateFilter(e.target.value)}
-                        className="filter-input"
-                      />
-                      <span style={{ fontSize: '0.75rem', color: '#718096', marginTop: '0.25rem', display: 'block' }}>
-                        Or type YYYY-MM-DD for specific day
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {(categoryFilter !== 'All' || paymentModeFilter !== 'All' || dateFilter !== 'All') && (
-                  <button
-                    type="button"
-                    className="clear-filters-btn"
-                    onClick={() => {
-                      setCategoryFilter('All');
-                      setPaymentModeFilter('All');
-                      setDateFilter('All');
-                      setCustomDateFilter('');
-                    }}
-                  >
-                    Clear Filters
-                  </button>
-                )}
-              </div>
-
-              <h2>Filtered Expenses</h2>
-              {sortedExpenses.length === 0 ? (
-                <p className="no-expenses">No expenses found.</p>
-              ) : (
-                sortedExpenses.map(expense => (
-                  <div key={expense.id} className="expense-card">
-                    <div className="expense-info">
-                      <h3 className="expense-desc">{expense.description}</h3>
-                      <span className="expense-datetime">
-                        {expense.category && <span className="expense-category-badge">{expense.category}</span>}
-                        {expense.paymentMode && expense.paymentMode !== 'Not Specified' && (
-                          <span className="expense-payment-badge">{expense.paymentMode}</span>
-                        )}
-                        <div style={{ width: '100%', height: '4px' }}></div>
-                        {expense.date} • {expense.time}
-                        {expense.remark && (
-                          <div className="expense-remark">
-                            <span className="remark-icon">📝</span> {expense.remark}
+                        <div className="expense-action" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                          <span className="expense-amount">₹{expense.amount.toFixed(2)}</span>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button type="button" onClick={() => handleEdit(expense)} style={{ background: '#cbd5e0', color: '#2d3748', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
+                            <button type="button" onClick={() => setDeleteId(expense.id)} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
                           </div>
-                        )}
-                      </span>
-                    </div>
-                    <div className="expense-action" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                      <span className="expense-amount">₹{expense.amount.toFixed(2)}</span>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button type="button" onClick={() => handleEdit(expense)} style={{ background: '#cbd5e0', color: '#2d3748', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
-                        <button type="button" onClick={() => setDeleteId(expense.id)} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+
+            {currentView === 'Backup & Restore' && (
+              <div className="backup-container">
+                <h2>Backup & Restore</h2>
+                <p>Download a backup file of your expenses and categories, or restore from an existing file.</p>
+
+                <button className="submit-btn" onClick={handleBackup} style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+                  Download Backup File
+                </button>
+
+                <div className="form-group">
+                  <label>Restore from File</label>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleRestoreFile}
+                    className="custom-file-input"
+                  />
+                </div>
+              </div>
+            )}
+
+            {currentView === 'About Us' && (
+              <div className="about-container">
+                <h2>About Expense Tracker</h2>
+                <br />
+                <p className="about-text">
+                  This Expense Tracker was beautifully built to assist you in tracking your financial footprint across multiple accounts, cash payments, and days.
+                  Always keep track of where your money goes.
+                </p>
+                <br />
+                <p className="about-text">
+                  Designed with a modern interface, prioritizing ease of access and quick navigation.
+                </p>
+
+                <div className="about-footer">
+                  <p className="developed-by">Developed By</p>
+                  <h3 className="developer-name">Arbaz Gazge</h3>
+                  <a
+                    href="https://www.instagram.com/arbaz_gazge"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#E1306C', textDecoration: 'none', fontWeight: '600', fontSize: '0.95rem', marginTop: '0.5rem' }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                    </svg>
+                    @arbaz_gazge
+                  </a>
+                </div>
+              </div>
+            )}
           </>
-        )}
-
-        {currentView === 'Backup & Restore' && (
-          <div className="backup-container">
-            <h2>Backup & Restore</h2>
-            <p>Download a backup file of your expenses and categories, or restore from an existing file.</p>
-
-            <button className="submit-btn" onClick={handleBackup} style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-              Download Backup File
-            </button>
-
-            <div className="form-group">
-              <label>Restore from File</label>
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleRestoreFile}
-                className="custom-file-input"
-              />
-            </div>
-          </div>
-        )}
-
-        {currentView === 'About Us' && (
-          <div className="about-container">
-            <h2>About Expense Tracker</h2>
-            <br />
-            <p className="about-text">
-              This Expense Tracker was beautifully built to assist you in tracking your financial footprint across multiple accounts, cash payments, and days.
-              Always keep track of where your money goes.
-            </p>
-            <br />
-            <p className="about-text">
-              Designed with a modern interface, prioritizing ease of access and quick navigation.
-            </p>
-
-            <div className="about-footer">
-              <p className="developed-by">Developed By</p>
-              <h3 className="developer-name">Arbaz Gazge</h3>
-              <a
-                href="https://www.instagram.com/arbaz_gazge"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: '#E1306C', textDecoration: 'none', fontWeight: '600', fontSize: '0.95rem', marginTop: '0.5rem' }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                </svg>
-                @arbaz_gazge
-              </a>
-            </div>
-          </div>
-        )}
-        </>
         )}
       </main>
 
@@ -750,7 +771,7 @@ function App() {
               <h3>Manage Categories</h3>
               <button className="close-btn" style={{ position: 'static', color: 'var(--text-primary)' }} onClick={() => { setIsCategoryModalOpen(false); setEditingCategoryIdx(null); setNewCategory(''); }}>&times;</button>
             </div>
-            
+
             <div className="category-input-group">
               <input
                 type="text"
@@ -780,6 +801,34 @@ function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Custom Numerical Keyboard */}
+      {showNumPad && (
+        <>
+          <div className="num-pad-overlay" onClick={() => setShowNumPad(false)}></div>
+          <div className="num-pad-sheet">
+            <div className="num-pad-header">
+              <div className="num-pad-value">₹ {amount || '0.00'}</div>
+              <button className="close-btn" onClick={() => setShowNumPad(false)} style={{ position: 'static', fontSize: '1.5rem', color: 'var(--text-secondary)' }}>Done</button>
+            </div>
+            <div className="num-pad-grid">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'].map(key => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`num-pad-key ${key === 'back' ? 'delete' : (key === '.' ? 'special' : '')}`}
+                  onClick={() => handleNumPadPress(key)}
+                >
+                  {key === 'back' ? '⌫' : key}
+                </button>
+              ))}
+              <button type="button" className="num-pad-key done" onClick={() => setShowNumPad(false)}>
+                Confirm Amount
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

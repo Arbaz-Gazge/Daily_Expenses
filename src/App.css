@@ -282,12 +282,14 @@ body {
   font-size: 1.3rem;
   background: linear-gradient(135deg, #11998e 0%, #0b3d3d 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .dark-mode .expense-amount {
   background: linear-gradient(135deg, #2dd4bf 0%, #0cebeb 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -1080,4 +1082,109 @@ input:checked+.slider:before {
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes numPadSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* Numerical Pad Styles */
+.num-pad-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 3000;
+  animation: fadeIn 0.3s ease;
+}
+
+.num-pad-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 1.5rem;
+  z-index: 3001;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+  animation: numPadSlideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.num-pad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.num-pad-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent-dark);
+  font-family: 'Outfit', sans-serif;
+}
+
+.dark-mode .num-pad-value {
+  color: var(--accent-color);
+}
+
+.num-pad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.num-pad-key {
+  background: var(--bg-primary);
+  border: none;
+  border-radius: 16px;
+  padding: 1.25rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.num-pad-key:active {
+  background: var(--accent-color);
+  color: #0b3d3d;
+  transform: scale(0.92);
+}
+
+.num-pad-key.special {
+  background: rgba(32, 227, 178, 0.1);
+  color: var(--accent-dark);
+}
+
+.num-pad-key.delete {
+  background: #fff5f5;
+  color: #fc8181;
+}
+
+.dark-mode .num-pad-key.delete {
+  background: #442727;
+}
+
+.num-pad-key.done {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  grid-column: span 3;
+  margin-top: 0.5rem;
+  font-size: 1.2rem;
+  padding: 1rem;
 }
