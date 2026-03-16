@@ -39,6 +39,8 @@ function App() {
   const [dateFilter, setDateFilter] = useState('All');
   const [customDateFilter, setCustomDateFilter] = useState('');
   const [paymentModeFilter, setPaymentModeFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
 
   // Settings
   const [settings, setSettings] = useState<Settings>({ theme: 'light' });
@@ -276,6 +278,14 @@ function App() {
   const filteredExpenses = expenses.filter(expense => {
     if (categoryFilter !== 'All' && expense.category !== categoryFilter) return false;
     if (paymentModeFilter !== 'All' && expense.paymentMode !== paymentModeFilter) return false;
+
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      const inDesc = expense.description.toLowerCase().includes(query);
+      const inRemark = expense.remark?.toLowerCase().includes(query);
+      const inCategory = expense.category?.toLowerCase().includes(query);
+      if (!inDesc && !inRemark && !inCategory) return false;
+    }
 
     const today = new Date();
     const todayStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
@@ -559,7 +569,32 @@ function App() {
 
                 <div className="expenses-list">
                   <div className="filters-container">
-                    <h3 className="filters-title">Filters</h3>
+                    <div className="filters-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h3 className="filters-title" style={{ margin: 0 }}>Filters</h3>
+                      <button 
+                        type="button" 
+                        className={`search-toggle-btn ${showSearch ? 'active' : ''}`}
+                        onClick={() => {
+                          setShowSearch(!showSearch);
+                          if (showSearch) setSearchQuery('');
+                        }}
+                      >
+                        {showSearch ? '✕ Close' : '🔍 Search'}
+                      </button>
+                    </div>
+
+                    {showSearch && (
+                      <div className="search-bar-container anim-fade-in">
+                        <input
+                          type="text"
+                          className="search-input"
+                          placeholder="Search expenses..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                    )}
                     <div className="filters-grid">
                       <div className="filter-item">
                         <label>Category</label>
@@ -656,7 +691,7 @@ function App() {
                       )}
                     </div>
 
-                    {(categoryFilter !== 'All' || paymentModeFilter !== 'All' || dateFilter !== 'All') && (
+                    {(categoryFilter !== 'All' || paymentModeFilter !== 'All' || dateFilter !== 'All' || searchQuery !== '') && (
                       <button
                         type="button"
                         className="clear-filters-btn"
@@ -665,9 +700,10 @@ function App() {
                           setPaymentModeFilter('All');
                           setDateFilter('All');
                           setCustomDateFilter('');
+                          setSearchQuery('');
                         }}
                       >
-                        Clear Filters
+                        Clear All Filters
                       </button>
                     )}
                   </div>
