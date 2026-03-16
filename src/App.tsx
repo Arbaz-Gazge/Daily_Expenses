@@ -45,6 +45,10 @@ function App() {
   // edit mode
   const [editExpenseId, setEditExpenseId] = useState<string | null>(null);
 
+  // UI States
+  const [isLoading, setIsLoading] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
   const defaultCategories = [
     "Food & Dining",
     "Transportation",
@@ -142,11 +146,20 @@ function App() {
     setPaymentMode('');
 
     // Automatically switch to dashboard after adding
-    setCurrentView('Dashboard');
+    handleViewSwitch('Dashboard');
+  };
+
+  const handleViewSwitch = (view: string) => {
+    setIsLoading(true);
+    setTimeout(() => {
+      setCurrentView(view);
+      setIsLoading(false);
+    }, 450); // Shorter but noticeable loading time
   };
 
   const deleteExpense = (id: string) => {
     setExpenses(expenses.filter(e => e.id !== id));
+    setDeleteId(null);
   };
 
   const handleEdit = (expense: Expense) => {
@@ -157,7 +170,7 @@ function App() {
     setTime(expense.time);
     setPaymentMode(expense.paymentMode || '');
     setEditExpenseId(expense.id);
-    setCurrentView('Add Expense');
+    handleViewSwitch('Add Expense');
   };
 
   const addCategory = () => {
@@ -271,16 +284,16 @@ function App() {
           <button className="close-btn" onClick={() => setIsSidebarOpen(false)}>×</button>
         </div>
         <ul className="sidebar-nav">
-          <li className={currentView === 'Add Expense' ? 'active' : ''} onClick={() => { setCurrentView('Add Expense'); setIsSidebarOpen(false); }}>
+          <li className={currentView === 'Add Expense' ? 'active' : ''} onClick={() => { handleViewSwitch('Add Expense'); setIsSidebarOpen(false); }}>
             {editExpenseId ? 'Edit Expense' : 'Add Expense'}
           </li>
-          <li className={currentView === 'Dashboard' ? 'active' : ''} onClick={() => { setCurrentView('Dashboard'); setIsSidebarOpen(false); }}>
+          <li className={currentView === 'Dashboard' ? 'active' : ''} onClick={() => { handleViewSwitch('Dashboard'); setIsSidebarOpen(false); }}>
             Dashboard
           </li>
-          <li className={currentView === 'Backup & Restore' ? 'active' : ''} onClick={() => { setCurrentView('Backup & Restore'); setIsSidebarOpen(false); }}>
+          <li className={currentView === 'Backup & Restore' ? 'active' : ''} onClick={() => { handleViewSwitch('Backup & Restore'); setIsSidebarOpen(false); }}>
             Backup & Restore
           </li>
-          <li className={currentView === 'About Us' ? 'active' : ''} onClick={() => { setCurrentView('About Us'); setIsSidebarOpen(false); }}>
+          <li className={currentView === 'About Us' ? 'active' : ''} onClick={() => { handleViewSwitch('About Us'); setIsSidebarOpen(false); }}>
             About Us
           </li>
         </ul>
@@ -306,7 +319,14 @@ function App() {
       </header>
 
       <main className="main-content">
-        {currentView === 'Add Expense' && (
+        {isLoading ? (
+          <div className="loading-view">
+            <div className="spinner"></div>
+            <p>Loading {currentView}...</p>
+          </div>
+        ) : (
+          <>
+            {currentView === 'Add Expense' && (
           <form className="expense-form" onSubmit={addExpense}>
             <div className="form-group">
               <label>Amount</label>
@@ -543,7 +563,7 @@ function App() {
                       <span className="expense-amount">₹{expense.amount.toFixed(2)}</span>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button type="button" onClick={() => handleEdit(expense)} style={{ background: '#cbd5e0', color: '#2d3748', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
-                        <button type="button" onClick={() => deleteExpense(expense.id)} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
+                        <button type="button" onClick={() => setDeleteId(expense.id)} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
                       </div>
                     </div>
                   </div>
@@ -606,7 +626,23 @@ function App() {
             </div>
           </div>
         )}
+        </>
+        )}
       </main>
+
+      {/* Confirmation Modal */}
+      {deleteId && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h3>Confirm Delete</h3>
+            <p>Are you sure you want to delete this expense entry? This action cannot be undone.</p>
+            <div className="modal-actions">
+              <button className="modal-btn cancel" onClick={() => setDeleteId(null)}>Cancel</button>
+              <button className="modal-btn delete" onClick={() => deleteExpense(deleteId)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
