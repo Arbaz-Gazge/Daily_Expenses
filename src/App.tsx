@@ -201,8 +201,10 @@ function App() {
     setPaymentMode('');
     setRemark('');
 
-    // Automatically switch to dashboard after adding
-    handleViewSwitch('Dashboard');
+    // Automatically switch to dashboard after adding if not already there
+    if (currentView !== 'Dashboard') {
+      handleViewSwitch('Dashboard');
+    }
   };
 
   const handleViewSwitch = (view: string) => {
@@ -567,13 +569,59 @@ function App() {
 
             {currentView === 'Dashboard' && (
               <>
-                <button 
-                  type="button" 
-                  className="dashboard-add-btn" 
-                  onClick={() => handleViewSwitch('Add Expense')}
-                >
-                  + Add New Expense
-                </button>
+                <div className="quick-add-widget anim-fade-in">
+                  <div className="quick-add-header">
+                    <span>Quick Transaction</span>
+                    <button type="button" onClick={() => handleViewSwitch('Add Expense')}>Full Form</button>
+                  </div>
+                  <div className="quick-add-form">
+                    <div className="quick-input-group">
+                      <input 
+                        type="text" 
+                        placeholder="₹ Amount" 
+                        value={amount} 
+                        onClick={() => setShowNumPad(true)}
+                        readOnly
+                        className="quick-field amount-field"
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="What for?" 
+                        value={description} 
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="quick-field desc-field"
+                      />
+                    </div>
+                    <div className="quick-input-group row-bottom">
+                      <div className="custom-select-wrapper quick-cat-wrapper">
+                        <div
+                          className={`custom-select-trigger quick-select ${activeDropdown === 'quickCat' ? 'open' : ''}`}
+                          onClick={() => setActiveDropdown('quickCat')}
+                        >
+                          {category || 'Select Category'}
+                        </div>
+                        {activeDropdown === 'quickCat' && (
+                          <div className="popup-dropdown-container">
+                            <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                            <ul className="custom-dropdown popup">
+                              <div className="popup-header">Category</div>
+                              {categories.map(cat => (
+                                <li key={cat} onClick={() => { setCategory(cat); setActiveDropdown(null); }}>{cat}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                      <button 
+                        type="button" 
+                        className="quick-submit-btn" 
+                        onClick={(e) => addExpense(e as any)}
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="total-expense-card">
                   <h2>Total Expense</h2>

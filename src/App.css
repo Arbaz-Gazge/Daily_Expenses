@@ -1281,34 +1281,104 @@ input:checked+.slider:before {
   animation: fadeIn 0.3s ease-out;
 }
 
-.dashboard-add-btn {
-  width: 100%;
-  padding: 1.15rem;
+/* Quick Add Widget Styles */
+.quick-add-widget {
+  background: var(--bg-secondary);
+  border-radius: 20px;
+  padding: 1.25rem;
+  margin-top: -3.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--border-color);
+  position: relative;
+  z-index: 10;
+}
+
+.quick-add-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.quick-add-header span {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.quick-add-header button {
+  background: transparent;
+  border: none;
+  color: var(--accent-dark);
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 0;
+  cursor: pointer;
+}
+
+.quick-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.quick-input-group {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.quick-field {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: all 0.3s;
+}
+
+.quick-field:focus {
+  border-color: var(--accent-color);
+  background: var(--bg-secondary);
+  outline: none;
+}
+
+.amount-field {
+  max-width: 110px;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.quick-cat-wrapper {
+  flex: 1;
+}
+
+.quick-select {
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  border-radius: 12px;
+}
+
+.quick-submit-btn {
   background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
   color: white;
   border: none;
-  border-radius: 16px;
-  font-size: 1.15rem;
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-top: -3.5rem;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 8px 25px rgba(56, 239, 125, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-family: inherit;
-  position: relative;
-  z-index: 1;
+  transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(56, 239, 125, 0.2);
 }
 
-.dashboard-add-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(56, 239, 125, 0.4);
+.quick-submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(56, 239, 125, 0.3);
 }
 
-.dashboard-add-btn:active {
+.quick-submit-btn:active {
   transform: translateY(1px);
 }
