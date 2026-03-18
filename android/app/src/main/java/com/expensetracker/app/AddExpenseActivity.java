@@ -6,15 +6,20 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -28,8 +33,36 @@ public class AddExpenseActivity extends Activity {
 
         EditText editAmount = findViewById(R.id.editAmount);
         EditText editDescription = findViewById(R.id.editDescription);
+        Spinner spinnerCategory = findViewById(R.id.spinnerCategory);
         Button btnAdd = findViewById(R.id.btnAdd);
         Button btnCancel = findViewById(R.id.btnCancel);
+
+        // Load Categories
+        SharedPreferences prefs = getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+        String savedCats = prefs.getString("categories", "");
+        List<String> categoriesList = new ArrayList<>();
+        
+        if (savedCats != null && !savedCats.isEmpty()) {
+            try {
+                JSONArray catArr = new JSONArray(savedCats);
+                for (int i = 0; i < catArr.length(); i++) {
+                    categoriesList.add(catArr.getString(i));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (categoriesList.isEmpty()) {
+            categoriesList.addAll(Arrays.asList(
+                "Food & Dining", "Transportation", "Shopping", "Entertainment", 
+                "Bills & Utilities", "Health", "Travel", "Other"
+            ));
+        }
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoriesList);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCategory.setAdapter(adapter);
 
         btnCancel.setOnClickListener(v -> finish());
 
@@ -44,9 +77,10 @@ public class AddExpenseActivity extends Activity {
 
             try {
                 double amount = Double.parseDouble(amountStr);
+                String selectedCategory = spinnerCategory.getSelectedItem().toString();
 
-                SharedPreferences prefs = getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
-                String expensesJsonStr = prefs.getString("expenses", "[]");
+                SharedPreferences sPrefs = getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
+                String expensesJsonStr = sPrefs.getString("expenses", "[]");
 
                 JSONArray expensesArray = new JSONArray(expensesJsonStr);
 
@@ -58,14 +92,14 @@ public class AddExpenseActivity extends Activity {
                 newExpense.put("id", String.valueOf(System.currentTimeMillis()));
                 newExpense.put("amount", amount);
                 newExpense.put("description", description);
-                newExpense.put("category", "Uncategorized");
+                newExpense.put("category", selectedCategory);
                 newExpense.put("paymentMode", "Not Specified");
                 newExpense.put("date", dateFormat.format(now));
                 newExpense.put("time", timeFormat.format(now));
 
                 expensesArray.put(newExpense);
 
-                prefs.edit().putString("expenses", expensesArray.toString()).apply();
+                sPrefs.edit().putString("expenses", expensesArray.toString()).apply();
 
                 Toast.makeText(this, "Expense Added!", Toast.LENGTH_SHORT).show();
                 finish();
