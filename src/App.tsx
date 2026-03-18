@@ -41,6 +41,8 @@ function App() {
   const [paymentModeFilter, setPaymentModeFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Settings
   const [settings, setSettings] = useState<Settings>({ theme: 'light' });
@@ -120,6 +122,8 @@ function App() {
         if (filtersData.dateFilter) setDateFilter(filtersData.dateFilter);
         if (filtersData.customDateFilter) setCustomDateFilter(filtersData.customDateFilter);
         if (filtersData.paymentModeFilter) setPaymentModeFilter(filtersData.paymentModeFilter);
+        if (filtersData.startDate) setStartDate(filtersData.startDate);
+        if (filtersData.endDate) setEndDate(filtersData.endDate);
       }
 
       setDataLoaded(true);
@@ -155,9 +159,9 @@ function App() {
 
   useEffect(() => {
     if (!dataLoaded) return;
-    const filters = { categoryFilter, dateFilter, customDateFilter, paymentModeFilter };
+    const filters = { categoryFilter, dateFilter, customDateFilter, paymentModeFilter, startDate, endDate };
     Preferences.set({ key: 'filters', value: JSON.stringify(filters) });
-  }, [categoryFilter, dateFilter, customDateFilter, paymentModeFilter, dataLoaded]);
+  }, [categoryFilter, dateFilter, customDateFilter, paymentModeFilter, startDate, endDate, dataLoaded]);
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -303,6 +307,11 @@ function App() {
     if (dateFilter === 'Tomorrow' && expense.date !== tomorrowStr) return false;
 
     if (dateFilter === 'Custom' && customDateFilter && !expense.date.startsWith(customDateFilter)) return false;
+
+    if (dateFilter === 'Date Range') {
+      if (startDate && expense.date < startDate) return false;
+      if (endDate && expense.date > endDate) return false;
+    }
 
     return true;
   });
@@ -660,7 +669,7 @@ function App() {
                               <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
                               <ul className="custom-dropdown popup">
                                 <div className="popup-header">Filter by Date</div>
-                                {['All', 'Today', 'Yesterday', 'Tomorrow', 'Custom'].map(range => (
+                                {['All', 'Today', 'Yesterday', 'Tomorrow', 'Custom', 'Date Range'].map(range => (
                                   <li key={range} onClick={() => {
                                     setDateFilter(range);
                                     if (range !== 'Custom') setCustomDateFilter('');
@@ -689,6 +698,29 @@ function App() {
                           </span>
                         </div>
                       )}
+
+                      {dateFilter === 'Date Range' && (
+                        <>
+                          <div className="filter-item">
+                            <label>Start Date</label>
+                            <input
+                              type="date"
+                              value={startDate}
+                              onChange={(e) => setStartDate(e.target.value)}
+                              className="filter-input"
+                            />
+                          </div>
+                          <div className="filter-item">
+                            <label>End Date</label>
+                            <input
+                              type="date"
+                              value={endDate}
+                              onChange={(e) => setEndDate(e.target.value)}
+                              className="filter-input"
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {(categoryFilter !== 'All' || paymentModeFilter !== 'All' || dateFilter !== 'All' || searchQuery !== '') && (
@@ -701,6 +733,8 @@ function App() {
                           setDateFilter('All');
                           setCustomDateFilter('');
                           setSearchQuery('');
+                          setStartDate('');
+                          setEndDate('');
                         }}
                       >
                         Clear All Filters
