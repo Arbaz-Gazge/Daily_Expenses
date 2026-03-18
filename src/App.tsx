@@ -567,6 +567,14 @@ function App() {
 
             {currentView === 'Dashboard' && (
               <>
+                <button 
+                  type="button" 
+                  className="dashboard-add-btn" 
+                  onClick={() => handleViewSwitch('Add Expense')}
+                >
+                  + Add New Expense
+                </button>
+
                 <div className="total-expense-card">
                   <h2>Total Expense</h2>
                   <div className="amount">₹{totalExpense.toFixed(2)}</div>
