@@ -42,6 +42,7 @@ function App() {
   const [showSearch, setShowSearch] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [isQuickAddMode, setIsQuickAddMode] = useState(false);
 
   // Settings
   const [settings, setSettings] = useState<Settings>({ theme: 'light' });
@@ -201,10 +202,25 @@ function App() {
     setPaymentMode('');
     setRemark('');
 
-    // Automatically switch to dashboard after adding if not already there
-    if (currentView !== 'Dashboard') {
-      handleViewSwitch('Dashboard');
-    }
+    // Automatically switch to dashboard after adding
+    handleViewSwitch('Dashboard');
+  };
+
+  const openQuickAdd = () => {
+    const now = new Date();
+    const localDate = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    const localTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+    
+    setAmount('');
+    setDescription('');
+    setCategory('');
+    setPaymentMode('Cash');
+    setRemark('');
+    setDate(localDate);
+    setTime(localTime);
+    setEditExpenseId(null);
+    setIsQuickAddMode(true);
+    setShowNumPad(true);
   };
 
   const handleViewSwitch = (view: string) => {
@@ -442,9 +458,13 @@ function App() {
                     value={amount}
                     onFocus={(e) => {
                       e.target.blur();
+                      setIsQuickAddMode(false);
                       setShowNumPad(true);
                     }}
-                    onClick={() => setShowNumPad(true)}
+                    onClick={() => {
+                      setIsQuickAddMode(false);
+                      setShowNumPad(true);
+                    }}
                     placeholder="0.00"
                     required
                   />
@@ -569,59 +589,13 @@ function App() {
 
             {currentView === 'Dashboard' && (
               <>
-                <div className="quick-add-widget anim-fade-in">
-                  <div className="quick-add-header">
-                    <span>Quick Transaction</span>
-                    <button type="button" onClick={() => handleViewSwitch('Add Expense')}>Full Form</button>
-                  </div>
-                  <div className="quick-add-form">
-                    <div className="quick-input-group">
-                      <input 
-                        type="text" 
-                        placeholder="₹ Amount" 
-                        value={amount} 
-                        onClick={() => setShowNumPad(true)}
-                        readOnly
-                        className="quick-field amount-field"
-                      />
-                      <input 
-                        type="text" 
-                        placeholder="What for?" 
-                        value={description} 
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="quick-field desc-field"
-                      />
-                    </div>
-                    <div className="quick-input-group row-bottom">
-                      <div className="custom-select-wrapper quick-cat-wrapper">
-                        <div
-                          className={`custom-select-trigger quick-select ${activeDropdown === 'quickCat' ? 'open' : ''}`}
-                          onClick={() => setActiveDropdown('quickCat')}
-                        >
-                          {category || 'Select Category'}
-                        </div>
-                        {activeDropdown === 'quickCat' && (
-                          <div className="popup-dropdown-container">
-                            <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                            <ul className="custom-dropdown popup">
-                              <div className="popup-header">Category</div>
-                              {categories.map(cat => (
-                                <li key={cat} onClick={() => { setCategory(cat); setActiveDropdown(null); }}>{cat}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                      <button 
-                        type="button" 
-                        className="quick-submit-btn" 
-                        onClick={(e) => addExpense(e as any)}
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  className="dashboard-add-btn"
+                  onClick={openQuickAdd}
+                >
+                  + Quick Add Entry
+                </button>
 
                 <div className="total-expense-card">
                   <h2>Total Expense</h2>
@@ -632,8 +606,8 @@ function App() {
                   <div className="filters-container">
                     <div className="filters-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <h3 className="filters-title" style={{ margin: 0 }}>Filters</h3>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className={`search-toggle-btn ${showSearch ? 'active' : ''}`}
                         onClick={() => {
                           setShowSearch(!showSearch);
@@ -721,14 +695,14 @@ function App() {
                               <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
                               <ul className="custom-dropdown popup">
                                 <div className="popup-header">Filter by Date</div>
-                                 {['All', 'Today', 'Yesterday', 'Tomorrow', 'Date Range'].map(range => (
-                                   <li key={range} onClick={() => {
-                                     setDateFilter(range);
-                                     setActiveDropdown(null);
-                                   }}>
-                                     {range === 'All' ? 'All Dates' : range}
-                                   </li>
-                                 ))}
+                                {['All', 'Today', 'Yesterday', 'Tomorrow', 'Date Range'].map(range => (
+                                  <li key={range} onClick={() => {
+                                    setDateFilter(range);
+                                    setActiveDropdown(null);
+                                  }}>
+                                    {range === 'All' ? 'All Dates' : range}
+                                  </li>
+                                ))}
                               </ul>
                             </div>
                           )}
@@ -924,15 +898,54 @@ function App() {
         </div>
       )}
 
-      {/* Custom Numerical Keyboard */}
+      {/* Custom Numerical Keyboard / Quick Add Widget */}
       {showNumPad && (
         <>
           <div className="num-pad-overlay" onClick={() => setShowNumPad(false)}></div>
-          <div className="num-pad-sheet">
-            <div className="num-pad-header">
-              <div className="num-pad-value">₹ {amount || '0.00'}</div>
-              <button className="close-btn" onClick={() => setShowNumPad(false)} style={{ position: 'static', fontSize: '1.5rem', color: 'var(--text-secondary)' }}>Done</button>
+          <div className="num-pad-sheet quick-add-sheet">
+            <div className="quick-add-header">
+              <button 
+                type="button" 
+                className="close-btn" 
+                onClick={() => { setShowNumPad(false); setIsQuickAddMode(false); }} 
+                style={{ position: 'static', color: 'var(--text-secondary)' }}
+              >
+                &times;
+              </button>
+              <div className="quick-add-amount-display">₹ {amount || '0.00'}</div>
             </div>
+
+            {isQuickAddMode && (
+              <div className="quick-add-input-group">
+                <input 
+                  type="text" 
+                  className="quick-add-input" 
+                  placeholder="What for? (Description)" 
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  autoFocus
+                />
+                
+                <div className="quick-add-category-selector">
+                  <div 
+                    className={`quick-add-category-item ${category === '' ? 'selected' : ''}`}
+                    onClick={() => setCategory('')}
+                  >
+                    Other
+                  </div>
+                  {categories.map(cat => (
+                    <div 
+                      key={cat} 
+                      className={`quick-add-category-item ${category === cat ? 'selected' : ''}`}
+                      onClick={() => setCategory(cat)}
+                    >
+                      {cat}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="num-pad-grid">
               {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'].map(key => (
                 <button
@@ -944,9 +957,27 @@ function App() {
                   {key === 'back' ? '⌫' : key}
                 </button>
               ))}
-              <button type="button" className="num-pad-key done" onClick={() => setShowNumPad(false)}>
-                Confirm Amount
-              </button>
+              {isQuickAddMode ? (
+                <button 
+                  type="button" 
+                  className="quick-add-save-btn" 
+                  onClick={(e) => {
+                    addExpense(e as any);
+                    setShowNumPad(false);
+                    setIsQuickAddMode(false);
+                  }}
+                >
+                  Save Entry
+                </button>
+              ) : (
+                <button 
+                  type="button" 
+                  className="num-pad-key done" 
+                  onClick={() => setShowNumPad(false)}
+                >
+                  Done
+                </button>
+              )}
             </div>
           </div>
         </>
