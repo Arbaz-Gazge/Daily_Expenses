@@ -37,7 +37,6 @@ function App() {
   // Filters state
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All');
-  const [customDateFilter, setCustomDateFilter] = useState('');
   const [paymentModeFilter, setPaymentModeFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -120,7 +119,6 @@ function App() {
         const filtersData = JSON.parse(savedFilters.value);
         if (filtersData.categoryFilter) setCategoryFilter(filtersData.categoryFilter);
         if (filtersData.dateFilter) setDateFilter(filtersData.dateFilter);
-        if (filtersData.customDateFilter) setCustomDateFilter(filtersData.customDateFilter);
         if (filtersData.paymentModeFilter) setPaymentModeFilter(filtersData.paymentModeFilter);
         if (filtersData.startDate) setStartDate(filtersData.startDate);
         if (filtersData.endDate) setEndDate(filtersData.endDate);
@@ -159,9 +157,9 @@ function App() {
 
   useEffect(() => {
     if (!dataLoaded) return;
-    const filters = { categoryFilter, dateFilter, customDateFilter, paymentModeFilter, startDate, endDate };
+    const filters = { categoryFilter, dateFilter, paymentModeFilter, startDate, endDate };
     Preferences.set({ key: 'filters', value: JSON.stringify(filters) });
-  }, [categoryFilter, dateFilter, customDateFilter, paymentModeFilter, startDate, endDate, dataLoaded]);
+  }, [categoryFilter, dateFilter, paymentModeFilter, startDate, endDate, dataLoaded]);
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -305,8 +303,6 @@ function App() {
     if (dateFilter === 'Today' && expense.date !== todayStr) return false;
     if (dateFilter === 'Yesterday' && expense.date !== yesterdayStr) return false;
     if (dateFilter === 'Tomorrow' && expense.date !== tomorrowStr) return false;
-
-    if (dateFilter === 'Custom' && customDateFilter && !expense.date.startsWith(customDateFilter)) return false;
 
     if (dateFilter === 'Date Range') {
       if (startDate && expense.date < startDate) return false;
@@ -662,42 +658,27 @@ function App() {
                             className={`custom-select-trigger filter-select ${activeDropdown === 'dateFilter' ? 'open' : ''}`}
                             onClick={() => setActiveDropdown('dateFilter')}
                           >
-                            {dateFilter === 'All' ? 'All Dates' : dateFilter === 'Custom' ? 'Custom / Month' : dateFilter}
+                            {dateFilter === 'All' ? 'All Dates' : dateFilter}
                           </div>
                           {activeDropdown === 'dateFilter' && (
                             <div className="popup-dropdown-container">
                               <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
                               <ul className="custom-dropdown popup">
                                 <div className="popup-header">Filter by Date</div>
-                                {['All', 'Today', 'Yesterday', 'Tomorrow', 'Custom', 'Date Range'].map(range => (
-                                  <li key={range} onClick={() => {
-                                    setDateFilter(range);
-                                    if (range !== 'Custom') setCustomDateFilter('');
-                                    setActiveDropdown(null);
-                                  }}>
-                                    {range === 'All' ? 'All Dates' : range === 'Custom' ? 'Custom / Month' : range}
-                                  </li>
-                                ))}
+                                 {['All', 'Today', 'Yesterday', 'Tomorrow', 'Date Range'].map(range => (
+                                   <li key={range} onClick={() => {
+                                     setDateFilter(range);
+                                     setActiveDropdown(null);
+                                   }}>
+                                     {range === 'All' ? 'All Dates' : range}
+                                   </li>
+                                 ))}
                               </ul>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {dateFilter === 'Custom' && (
-                        <div className="filter-item">
-                          <label>Select Month/Date</label>
-                          <input
-                            type="month"
-                            value={customDateFilter}
-                            onChange={(e) => setCustomDateFilter(e.target.value)}
-                            className="filter-input"
-                          />
-                          <span style={{ fontSize: '0.75rem', color: '#718096', marginTop: '0.25rem', display: 'block' }}>
-                            Or type YYYY-MM-DD for specific day
-                          </span>
-                        </div>
-                      )}
 
                       {dateFilter === 'Date Range' && (
                         <>
@@ -731,7 +712,6 @@ function App() {
                           setCategoryFilter('All');
                           setPaymentModeFilter('All');
                           setDateFilter('All');
-                          setCustomDateFilter('');
                           setSearchQuery('');
                           setStartDate('');
                           setEndDate('');
