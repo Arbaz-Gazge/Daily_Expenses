@@ -903,7 +903,7 @@ input:checked+.slider:before {
   padding: 2rem;
   border-radius: 20px;
   text-align: center;
-  margin-top: -3.5rem;
+  margin-top: 1rem;
   margin-bottom: 2rem;
   position: relative;
   box-shadow: 0 10px 25px rgba(56, 239, 125, 0.3);
@@ -1292,13 +1292,16 @@ input:checked+.slider:before {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-bottom: 2rem;
+  margin-top: -3.5rem;
+  margin-bottom: 1.25rem;
   box-shadow: 0 8px 25px rgba(56, 239, 125, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   font-family: inherit;
+  position: relative;
+  z-index: 1;
 }
 
 .dashboard-add-btn:hover {
