@@ -48,7 +48,7 @@ function App() {
   const [calendarMonth, setCalendarMonth] = useState(new Date()); // Month currently viewed in calendar
 
   // Settings
-  const [settings, setSettings] = useState<Settings>({ theme: 'light', timeFormat: '24h' });
+  const [settings, setSettings] = useState<Settings>({ theme: 'light', timeFormat: '12h' });
 
   // Backup & Restore
   // edit mode
@@ -502,12 +502,12 @@ function App() {
 
         <div className="sidebar-footer">
           <div className="theme-toggle" style={{ marginBottom: '1rem' }}>
-            <span>Time Format (12h)</span>
+            <span>Time Format (24h)</span>
             <label className="switch">
               <input
                 type="checkbox"
-                checked={settings.timeFormat === '12h'}
-                onChange={() => setSettings({ ...settings, timeFormat: settings.timeFormat === '24h' ? '12h' : '24h' })}
+                checked={settings.timeFormat === '24h'}
+                onChange={() => setSettings({ ...settings, timeFormat: settings.timeFormat === '12h' ? '24h' : '12h' })}
               />
               <span className="slider round"></span>
             </label>
