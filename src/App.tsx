@@ -826,7 +826,7 @@ function App() {
                               <span className="expense-payment-badge">{expense.paymentMode}</span>
                             )}
                             <div style={{ width: '100%', height: '4px' }}></div>
-                            {expense.date} • {expense.time}
+                            {new Date(expense.date).toLocaleDateString('en-US', { weekday: 'long' })}, {expense.date.split('-').reverse().join('/')} • {expense.time}
                             {expense.remark && (
                               <div className="expense-remark">
                                 <span className="remark-icon">📝</span> {expense.remark}
