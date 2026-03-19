@@ -1700,3 +1700,15 @@ input:checked+.slider:before {
 .dark-mode .calendar-footer .apply-btn:hover {
   color: white;
 }
+
+.calendar-day.is-today {
+  border: 1.5px solid var(--accent-color);
+  color: var(--accent-color);
+  font-weight: 700;
+}
+
+.calendar-day.is-today.selected,
+.calendar-day.is-today.range-start,
+.calendar-day.is-today.range-end {
+  border-color: white;
+}

@@ -1183,11 +1183,15 @@ function App() {
                   const isEnd = dateStr === endDate;
                   const hasSelection = !!(startDate && endDate);
                   const isInRange = startDate && endDate && dateStr > startDate && dateStr < endDate;
+                  
+                  const todayObj = new Date();
+                  const todayStr = formatCalDate(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+                  const isToday = dateStr === todayStr;
 
                   cells.push(
                     <div 
                       key={d} 
-                      className={`calendar-day ${isStart ? 'range-start' : ''} ${isEnd ? 'range-end' : ''} ${(isStart || isEnd) ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${hasSelection ? 'has-range' : ''}`}
+                      className={`calendar-day ${isStart ? 'range-start' : ''} ${isEnd ? 'range-end' : ''} ${(isStart || isEnd) ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${hasSelection ? 'has-range' : ''} ${isToday ? 'is-today' : ''}`}
                       onClick={() => handleDateClick(dateStr)}
                     >
                       {d}
