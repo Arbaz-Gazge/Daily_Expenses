@@ -18,6 +18,7 @@ interface Expense {
 
 interface Settings {
   theme: 'light' | 'dark';
+  timeFormat: '12h' | '24h';
 }
 
 function App() {
@@ -47,7 +48,7 @@ function App() {
   const [calendarMonth, setCalendarMonth] = useState(new Date()); // Month currently viewed in calendar
 
   // Settings
-  const [settings, setSettings] = useState<Settings>({ theme: 'light' });
+  const [settings, setSettings] = useState<Settings>({ theme: 'light', timeFormat: '24h' });
 
   // Backup & Restore
   // edit mode
@@ -399,6 +400,16 @@ function App() {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   };
 
+  // Calendar Helpers
+  const formatTime = (timeStr: string) => {
+    if (!timeStr) return '';
+    if (settings.timeFormat === '24h') return timeStr;
+    const [hour, minute] = timeStr.split(':').map(Number);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const h12 = hour % 12 || 12;
+    return `${h12}:${String(minute).padStart(2, '0')} ${ampm}`;
+  };
+
   const sortedExpenses = [...filteredExpenses].sort((a, b) => {
     const dateA = new Date(`${a.date}T${a.time}`);
     const dateB = new Date(`${b.date}T${b.time}`);
@@ -490,6 +501,17 @@ function App() {
         </ul>
 
         <div className="sidebar-footer">
+          <div className="theme-toggle" style={{ marginBottom: '1rem' }}>
+            <span>Time Format (12h)</span>
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={settings.timeFormat === '12h'}
+                onChange={() => setSettings({ ...settings, timeFormat: settings.timeFormat === '24h' ? '12h' : '24h' })}
+              />
+              <span className="slider round"></span>
+            </label>
+          </div>
           <div className="theme-toggle">
             <span>Dark Mode</span>
             <label className="switch">
@@ -826,7 +848,7 @@ function App() {
                               <span className="expense-payment-badge">{expense.paymentMode}</span>
                             )}
                             <div style={{ width: '100%', height: '4px' }}></div>
-                            {new Date(expense.date).toLocaleDateString('en-US', { weekday: 'long' })}, {expense.date.split('-').reverse().join('/')} • {expense.time}
+                            {new Date(expense.date).toLocaleDateString('en-US', { weekday: 'long' })}, {expense.date.split('-').reverse().join('/')} • {formatTime(expense.time)}
                             {expense.remark && (
                               <div className="expense-remark">
                                 <span className="remark-icon">📝</span> {expense.remark}
