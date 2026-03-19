@@ -1342,7 +1342,13 @@ function App() {
                     })()}deg)`
                   }}
                 >
-                  <div className="needle-head"></div>
+                  <div className="needle-head">
+                    {(() => {
+                      const [h, m] = time.split(':');
+                      if (timeSelectionMode === 'hour') return String(parseInt(h) % 12 || 12);
+                      return m;
+                    })()}
+                  </div>
                 </div>
                 {/* Numbers */}
                 {timeSelectionMode === 'hour' ? (

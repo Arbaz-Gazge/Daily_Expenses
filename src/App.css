@@ -1740,79 +1740,57 @@ input:checked+.slider:before {
 .clock-time-display {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
 .clock-large-text {
   font-size: 3.5rem;
   font-weight: 400;
-  color: #000;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 8px 12px;
-  border-radius: 8px;
-  background: #f0f0f0;
+  border-radius: 12px;
+  background: var(--bg-primary);
   line-height: 1;
   min-width: 90px;
   height: 90px;
   display: flex;
   justify-content: center;
   align-items: center;
+  transition: all 0.2s;
 }
 
 .clock-large-text.active {
-  color: #6200ee;
-  background: #f3e5f5;
-}
-
-.dark-mode .clock-large-text {
-  color: #eee;
-  background: #3d3d3d;
-}
-
-.dark-mode .clock-large-text.active {
-  color: #bb86fc;
-  background: #3700b3;
+  color: white;
+  background: var(--accent-color);
 }
 
 .clock-separator {
   font-size: 3rem;
-  color: #757575;
+  color: var(--text-muted);
 }
 
 .clock-ampm-toggle {
   display: flex;
   flex-direction: column;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   overflow: hidden;
 }
 
-.dark-mode .clock-ampm-toggle {
-  border-color: #444;
-}
-
 .ampm-btn {
-  padding: 8px 12px;
+  padding: 10px 14px;
   font-size: 0.85rem;
-  font-weight: 500;
-  color: #757575;
+  font-weight: 600;
+  color: var(--text-muted);
   cursor: pointer;
-  background: white;
-}
-
-.dark-mode .ampm-btn {
-  background: #2d2d2d;
-  color: #aaa;
+  background: var(--bg-secondary);
+  transition: all 0.2s;
 }
 
 .ampm-btn.active {
-  background: #6200ee;
-  color: white;
-}
-
-.dark-mode .ampm-btn.active {
-  background: #6200ee;
-  color: #fff;
+  background: var(--accent-color);
+  color: #0b3d3d; /* Matching header text contrast */
 }
 
 .clock-face-container {
@@ -1825,13 +1803,9 @@ input:checked+.slider:before {
 .clock-face {
   width: 240px;
   height: 240px;
-  background: #eeeeee;
+  background: var(--bg-primary);
   border-radius: 50%;
   position: relative;
-}
-
-.dark-mode .clock-face {
-  background: #3d3d3d;
 }
 
 .clock-center-dot {
@@ -1840,14 +1814,10 @@ input:checked+.slider:before {
   left: 50%;
   width: 8px;
   height: 8px;
-  background: #6200ee;
+  background: var(--accent-color);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   z-index: 2;
-}
-
-.dark-mode .clock-center-dot {
-  background: #bb86fc;
 }
 
 .clock-needle {
@@ -1855,14 +1825,10 @@ input:checked+.slider:before {
   top: 50%;
   left: 50%;
   width: 2px;
-  height: 38%; /* Adjusted length */
-  background: #6200ee;
+  height: 38%;
+  background: var(--accent-color);
   transform-origin: bottom center;
   z-index: 1;
-}
-
-.dark-mode .clock-needle {
-  background: #bb86fc;
 }
 
 .needle-head {
@@ -1871,22 +1837,23 @@ input:checked+.slider:before {
   left: 50%;
   width: 40px;
   height: 40px;
-  background: #6200ee;
+  background: var(--accent-color);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-}
-
-.dark-mode .needle-head {
-  background: #bb86fc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #0b3d3d;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .clock-number {
   position: absolute;
   transform: translate(-50%, -50%);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 500;
-  color: #212121;
-  cursor: pointer;
+  color: var(--text-secondary);
   width: 34px;
   height: 34px;
   display: flex;
@@ -1895,47 +1862,36 @@ input:checked+.slider:before {
   z-index: 3;
 }
 
-.dark-mode .clock-number {
-  color: #eee;
-}
-
 .clock-number.selected {
-  color: white;
+  color: #0b3d3d;
 }
 
 .clock-footer {
-  padding: 8px 16px 12px;
+  padding: 12px 20px 20px;
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 12px;
 }
 
 .clock-btn.flat {
   background: none;
   border: none;
   padding: 10px 16px;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: #757575;
+  color: var(--text-muted);
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 8px;
   letter-spacing: 0.5px;
+  transition: all 0.2s;
 }
 
 .clock-btn.flat.colored {
-  color: #6200ee;
-}
-
-.dark-mode .clock-btn.flat.colored {
-  color: #bb86fc;
+  color: var(--accent-dark);
 }
 
 .clock-btn.flat:hover {
-  background: rgba(0,0,0,0.05);
-}
-
-.dark-mode .clock-btn.flat:hover {
-  background: rgba(255,255,255,0.05);
+  background: var(--bg-primary);
 }
 
 @keyframes modalPop {
