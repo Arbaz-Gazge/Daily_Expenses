@@ -1624,12 +1624,13 @@ input:checked+.slider:before {
   font-weight: 600;
 }
 
-.calendar-day.range-start {
+/* Flatten corners only when a full range exists */
+.calendar-day.range-start.has-range {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-.calendar-day.range-end {
+.calendar-day.range-end.has-range {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
@@ -1637,10 +1638,11 @@ input:checked+.slider:before {
 .calendar-day.in-range {
   background: var(--accent-color-light);
   color: var(--accent-dark);
-  border-radius: 0;
+  border-radius: 0; /* Ensure the middle days are fully rectangular */
 }
 
-.calendar-day.range-start.range-end { /* For single day selection */
+/* For single day selection, ensure it remains a rounded circle */
+.calendar-day.range-start.range-end {
   border-radius: 10px;
 }
 

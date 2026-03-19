@@ -1087,11 +1087,13 @@ function App() {
                   const dateStr = formatCalDate(calendarMonth.getFullYear(), calendarMonth.getMonth(), d);
                   const isStart = dateStr === startDate;
                   const isEnd = dateStr === endDate;
+                  const hasSelection = !!(startDate && endDate);
                   const isInRange = startDate && endDate && dateStr > startDate && dateStr < endDate;
+
                   cells.push(
                     <div 
                       key={d} 
-                      className={`calendar-day ${isStart ? 'range-start' : ''} ${isEnd ? 'range-end' : ''} ${isInRange ? 'in-range' : ''} ${(isStart || isEnd) ? 'selected' : ''}`}
+                      className={`calendar-day ${isStart ? 'range-start' : ''} ${isEnd ? 'range-end' : ''} ${(isStart || isEnd) ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${hasSelection ? 'has-range' : ''}`}
                       onClick={() => handleDateClick(dateStr)}
                     >
                       {d}
