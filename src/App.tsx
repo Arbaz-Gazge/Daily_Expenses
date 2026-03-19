@@ -41,6 +41,7 @@ function App() {
   const [paymentModeFilter, setPaymentModeFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [catSearch, setCatSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isQuickAddMode, setIsQuickAddMode] = useState(false);
@@ -189,11 +190,17 @@ function App() {
     }
   }, [settings, dataLoaded]);
 
-   useEffect(() => {
+  useEffect(() => {
     if (!dataLoaded) return;
     const filters = { categoryFilters, dateFilter, paymentModeFilter, startDate, endDate };
     Preferences.set({ key: 'filters', value: JSON.stringify(filters) });
   }, [categoryFilters, dateFilter, paymentModeFilter, startDate, endDate, dataLoaded]);
+
+  useEffect(() => {
+    if (activeDropdown !== 'catFilter') {
+      setCatSearch('');
+    }
+  }, [activeDropdown]);
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -767,6 +774,16 @@ function App() {
                                   <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
                                   <ul className="custom-dropdown popup multi-select">
                                     <div className="popup-header">Filter by Category</div>
+                                    <div className="popup-search-box" style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)' }}>
+                                      <input 
+                                        type="text" 
+                                        placeholder="Search categories..." 
+                                        value={catSearch}
+                                        onChange={(e) => setCatSearch(e.target.value)}
+                                        style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    </div>
                                     <li 
                                       className={categoryFilters.includes('All') ? 'selected' : ''} 
                                       onClick={() => toggleCategoryFilter('All')}
@@ -774,7 +791,7 @@ function App() {
                                       <span className="checkbox">{categoryFilters.includes('All') ? '✓' : ''}</span>
                                       All Categories
                                     </li>
-                                    {categories.map(cat => (
+                                    {categories.filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase())).map(cat => (
                                       <li 
                                         key={cat} 
                                         className={categoryFilters.includes(cat) ? 'selected' : ''} 
@@ -784,13 +801,18 @@ function App() {
                                         {cat}
                                       </li>
                                     ))}
-                                    <li 
-                                      className={categoryFilters.includes('Uncategorized') ? 'selected' : ''} 
-                                      onClick={() => toggleCategoryFilter('Uncategorized')}
-                                    >
-                                      <span className="checkbox">{categoryFilters.includes('Uncategorized') ? '✓' : ''}</span>
-                                      Uncategorized
-                                    </li>
+                                    {(catSearch === '' || 'uncategorized'.includes(catSearch.toLowerCase())) && (
+                                      <li 
+                                        className={categoryFilters.includes('Uncategorized') ? 'selected' : ''} 
+                                        onClick={() => toggleCategoryFilter('Uncategorized')}
+                                      >
+                                        <span className="checkbox">{categoryFilters.includes('Uncategorized') ? '✓' : ''}</span>
+                                        Uncategorized
+                                      </li>
+                                    )}
+                                    {categories.filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase())).length === 0 && catSearch !== '' && !'uncategorized'.includes(catSearch.toLowerCase()) && (
+                                      <li style={{ padding: '1rem', color: 'var(--text-tertiary)', textAlign: 'center', pointerEvents: 'none' }}>No match found</li>
+                                    )}
                                   </ul>
                                 </div>
                               )}
