@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
@@ -49,6 +49,8 @@ function App() {
   const [pickerMode, setPickerMode] = useState<'single' | 'range'>('range');
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [timeSelectionMode, setTimeSelectionMode] = useState<'hour' | 'minute'>('hour');
+  const [isDraggingClock, setIsDraggingClock] = useState(false);
+  const clockFaceRef = useRef<HTMLDivElement>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date()); // Month currently viewed in calendar
 
   // Settings
@@ -418,6 +420,52 @@ function App() {
     const days = new Date(year, mon + 1, 0).getDate();
     return { firstDay, days };
   };
+
+  useEffect(() => {
+    const handleGlobalMove = (e: PointerEvent) => {
+      if (!isDraggingClock || !clockFaceRef.current) return;
+      
+      const rect = clockFaceRef.current.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const x = e.clientX - rect.left - centerX;
+      const y = e.clientY - rect.top - centerY;
+      
+      let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
+      if (angle < 0) angle += 360;
+
+      const [h, m] = time.split(':');
+      if (timeSelectionMode === 'hour') {
+        let hour = Math.round(angle / 30);
+        if (hour === 0) hour = 12;
+        const isPM = parseInt(h) >= 12;
+        const finalH = hour === 12 ? (isPM ? 12 : 0) : (isPM ? hour + 12 : hour);
+        setTime(`${String(finalH).padStart(2, '0')}:${m}`);
+      } else {
+        let minute = Math.round(angle / 6);
+        if (minute === 60) minute = 0;
+        setTime(`${h}:${String(minute).padStart(2, '0')}`);
+      }
+    };
+
+    const handleGlobalUp = () => {
+      if (isDraggingClock) {
+        setIsDraggingClock(false);
+        if (timeSelectionMode === 'hour') {
+          setTimeout(() => setTimeSelectionMode('minute'), 200);
+        }
+      }
+    };
+
+    if (isDraggingClock) {
+      window.addEventListener('pointermove', handleGlobalMove);
+      window.addEventListener('pointerup', handleGlobalUp);
+    }
+    return () => {
+      window.removeEventListener('pointermove', handleGlobalMove);
+      window.removeEventListener('pointerup', handleGlobalUp);
+    };
+  }, [isDraggingClock, timeSelectionMode, time]);
 
   const handleDateClick = (dateStr: string) => {
     if (pickerMode === 'single') {
@@ -1301,8 +1349,10 @@ function App() {
 
             <div className="clock-face-container">
               <div 
+                ref={clockFaceRef}
                 className="clock-face"
-                onClick={(e) => {
+                onPointerDown={(e) => {
+                  setIsDraggingClock(true);
                   const rect = e.currentTarget.getBoundingClientRect();
                   const centerX = rect.width / 2;
                   const centerY = rect.height / 2;
@@ -1319,13 +1369,13 @@ function App() {
                     const isPM = parseInt(h) >= 12;
                     const finalH = hour === 12 ? (isPM ? 12 : 0) : (isPM ? hour + 12 : hour);
                     setTime(`${String(finalH).padStart(2, '0')}:${m}`);
-                    setTimeout(() => setTimeSelectionMode('minute'), 300);
                   } else {
                     let minute = Math.round(angle / 6);
                     if (minute === 60) minute = 0;
                     setTime(`${h}:${String(minute).padStart(2, '0')}`);
                   }
                 }}
+                style={{ touchAction: 'none' }}
               >
                 <div className="clock-center-dot"></div>
                 {/* Needle */}
