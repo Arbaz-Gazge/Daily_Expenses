@@ -48,6 +48,7 @@ function App() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [pickerMode, setPickerMode] = useState<'single' | 'range'>('range');
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [timeSelectionMode, setTimeSelectionMode] = useState<'hour' | 'minute'>('hour');
   const [calendarMonth, setCalendarMonth] = useState(new Date()); // Month currently viewed in calendar
 
   // Settings
@@ -1250,51 +1251,127 @@ function App() {
           </div>
         </div>
       )}
-      {/* Custom Time Picker Modal */}
+      {/* Material Clock Time Picker Modal */}
       {showTimePicker && (
         <div className="modal-overlay" onClick={() => setShowTimePicker(false)}>
-          <div className="time-picker-modal" onClick={e => e.stopPropagation()}>
-            <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Select Time</h3>
-            <div className="time-picker-content">
-              <div className="time-column">
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>Hour</label>
-                <div className="time-scroll">
-                  {Array.from({ length: 24 }, (_, i) => {
-                    const h = String(i).padStart(2, '0');
-                    const [currentH] = time.split(':');
-                    return (
-                      <div 
-                        key={h} 
-                        className={`time-unit ${h === currentH ? 'selected' : ''}`}
-                        onClick={() => setTime(`${h}:${time.split(':')[1] || '00'}`)}
-                      >
-                        {h}
-                      </div>
-                    );
-                  })}
-                </div>
+          <div className="clock-picker-modal" onClick={e => e.stopPropagation()}>
+            <div className="clock-header">
+              <div className="clock-time-display">
+                <span 
+                  className={`clock-large-text ${timeSelectionMode === 'hour' ? 'active' : ''}`}
+                  onClick={() => setTimeSelectionMode('hour')}
+                >
+                  {(() => {
+                    const [h] = time.split(':');
+                    const hour = parseInt(h);
+                    return String(hour % 12 || 12);
+                  })()}
+                </span>
+                <span className="clock-separator">:</span>
+                <span 
+                  className={`clock-large-text ${timeSelectionMode === 'minute' ? 'active' : ''}`}
+                  onClick={() => setTimeSelectionMode('minute')}
+                >
+                  {time.split(':')[1] || '00'}
+                </span>
               </div>
-              <div className="time-column">
-                <label style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>Minute</label>
-                <div className="time-scroll">
-                  {Array.from({ length: 60 }, (__, i) => {
-                    const m = String(i).padStart(2, '0');
-                    const [, currentM] = time.split(':');
-                    return (
-                      <div 
-                        key={m} 
-                        className={`time-unit ${m === currentM ? 'selected' : ''}`}
-                        onClick={() => setTime(`${time.split(':')[0] || '12'}:${m}`)}
-                      >
-                        {m}
-                      </div>
-                    );
-                  })}
+              <div className="clock-ampm-toggle">
+                <div 
+                  className={`ampm-btn ${parseInt(time.split(':')[0]) < 12 ? 'active' : ''}`}
+                  onClick={() => {
+                    const [h, m] = time.split(':');
+                    const hour = parseInt(h);
+                    if (hour >= 12) setTime(`${hour - 12}:${m}`);
+                  }}
+                >
+                  AM
+                </div>
+                <div 
+                  className={`ampm-btn ${parseInt(time.split(':')[0]) >= 12 ? 'active' : ''}`}
+                  onClick={() => {
+                    const [h, m] = time.split(':');
+                    const hour = parseInt(h);
+                    if (hour < 12) setTime(`${hour + 12}:${m}`);
+                  }}
+                >
+                  PM
                 </div>
               </div>
             </div>
-            <div className="calendar-footer" style={{ marginTop: '1.5rem', border: 'none', padding: 0 }}>
-               <button type="button" className="apply-btn" style={{ width: '100%' }} onClick={() => setShowTimePicker(false)}>Done</button>
+
+            <div className="clock-face-container">
+              <div className="clock-face">
+                <div className="clock-center-dot"></div>
+                {/* Needle */}
+                <div 
+                  className="clock-needle" 
+                  style={{ 
+                    transform: `rotate(${(() => {
+                      const [h, m] = time.split(':');
+                      if (timeSelectionMode === 'hour') {
+                        return (parseInt(h) % 12) * 30;
+                      } else {
+                        return parseInt(m) * 6;
+                      }
+                    })()}deg)`
+                  }}
+                >
+                  <div className="needle-head"></div>
+                </div>
+                {/* Numbers */}
+                {timeSelectionMode === 'hour' ? (
+                  Array.from({ length: 12 }, (_, i) => {
+                    const val = i + 1;
+                    const angle = (val * 30) - 90;
+                    const rad = (angle * Math.PI) / 180;
+                    const x = 50 + 40 * Math.cos(rad);
+                    const y = 50 + 40 * Math.sin(rad);
+                    const [h, m] = time.split(':');
+                    const currentH12 = parseInt(h) % 12 || 12;
+                    return (
+                      <div 
+                        key={val} 
+                        className={`clock-number ${val === currentH12 ? 'selected' : ''}`}
+                        style={{ left: `${x}%`, top: `${y}%` }}
+                        onClick={() => {
+                          const isPM = parseInt(h) >= 12;
+                          const newH = val === 12 ? (isPM ? 12 : 0) : (isPM ? val + 12 : val);
+                          setTime(`${String(newH).padStart(2, '0')}:${m}`);
+                          setTimeout(() => setTimeSelectionMode('minute'), 300);
+                        }}
+                      >
+                        {val}
+                      </div>
+                    );
+                  })
+                ) : (
+                  [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(val => {
+                    const angle = (val * 6) - 90;
+                    const rad = (angle * Math.PI) / 180;
+                    const x = 50 + 40 * Math.cos(rad);
+                    const y = 50 + 40 * Math.sin(rad);
+                    const [h, m] = time.split(':');
+                    const currentM = parseInt(m);
+                    return (
+                      <div 
+                        key={val} 
+                        className={`clock-number ${val === currentM ? 'selected' : ''}`}
+                        style={{ left: `${x}%`, top: `${y}%` }}
+                        onClick={() => {
+                          setTime(`${h}:${String(val).padStart(2, '0')}`);
+                        }}
+                      >
+                        {val}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="clock-footer">
+              <button className="clock-btn flat" onClick={() => setShowTimePicker(false)}>CANCEL</button>
+              <button className="clock-btn flat colored" onClick={() => setShowTimePicker(false)}>OK</button>
             </div>
           </div>
         </div>
