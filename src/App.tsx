@@ -43,6 +43,8 @@ function App() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [isQuickAddMode, setIsQuickAddMode] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(new Date()); // Month currently viewed in calendar
 
   // Settings
   const [settings, setSettings] = useState<Settings>({ theme: 'light' });
@@ -369,6 +371,33 @@ function App() {
 
     return true;
   });
+
+  // Calendar Helpers
+  const getDaysInMonth = (month: Date) => {
+    const year = month.getFullYear();
+    const mon = month.getMonth();
+    const firstDay = new Date(year, mon, 1).getDay();
+    const days = new Date(year, mon + 1, 0).getDate();
+    return { firstDay, days };
+  };
+
+  const handleDateClick = (dateStr: string) => {
+    if (!startDate || (startDate && endDate)) {
+      setStartDate(dateStr);
+      setEndDate('');
+    } else if (startDate && !endDate) {
+      if (dateStr < startDate) {
+        setEndDate(startDate);
+        setStartDate(dateStr);
+      } else {
+        setEndDate(dateStr);
+      }
+    }
+  };
+
+  const formatCalDate = (year: number, month: number, day: number) => {
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
 
   const sortedExpenses = [...filteredExpenses].sort((a, b) => {
     const dateA = new Date(`${a.date}T${a.time}`);
@@ -753,22 +782,13 @@ function App() {
                       {dateFilter === 'Date Range' && (
                         <div className="filter-item full-width">
                           <label>Select Range</label>
-                          <div className="date-range-picker-container">
-                            <input
-                              type="date"
-                              value={startDate}
-                              onChange={(e) => setStartDate(e.target.value)}
-                              className="date-input"
-                              placeholder="Start Date"
-                            />
-                            <span className="separator">to</span>
-                            <input
-                              type="date"
-                              value={endDate}
-                              onChange={(e) => setEndDate(e.target.value)}
-                              className="date-input"
-                              placeholder="End Date"
-                            />
+                          <div className="custom-calendar-trigger" onClick={() => setShowCalendar(true)}>
+                            <div className="trigger-val">
+                              {startDate ? new Date(startDate).toLocaleDateString() : 'Start'} 
+                              <span className="trigger-sep">→</span> 
+                              {endDate ? new Date(endDate).toLocaleDateString() : 'End'}
+                            </div>
+                            <span className="cal-icon">📅</span>
                           </div>
                         </div>
                       )}
@@ -1034,6 +1054,60 @@ function App() {
             </div>
           </div>
         </>
+      )}
+      {/* Custom Calendar Modal */}
+      {showCalendar && (
+        <div className="modal-overlay" onClick={() => setShowCalendar(false)}>
+          <div className="calendar-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="calendar-header">
+              <button 
+                type="button"
+                onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
+              >
+                &lt;
+              </button>
+              <h3>{calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
+              <button 
+                type="button"
+                onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
+              >
+                &gt;
+              </button>
+            </div>
+            
+            <div className="calendar-grid">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="calendar-weekday">{d}</div>)}
+              {(() => {
+                const { firstDay, days } = getDaysInMonth(calendarMonth);
+                const cells = [];
+                for (let i = 0; i < firstDay; i++) {
+                  cells.push(<div key={`empty-${i}`} className="calendar-day empty"></div>);
+                }
+                for (let d = 1; d <= days; d++) {
+                  const dateStr = formatCalDate(calendarMonth.getFullYear(), calendarMonth.getMonth(), d);
+                  const isStart = dateStr === startDate;
+                  const isEnd = dateStr === endDate;
+                  const isInRange = startDate && endDate && dateStr > startDate && dateStr < endDate;
+                  cells.push(
+                    <div 
+                      key={d} 
+                      className={`calendar-day ${isStart ? 'range-start' : ''} ${isEnd ? 'range-end' : ''} ${isInRange ? 'in-range' : ''} ${(isStart || isEnd) ? 'selected' : ''}`}
+                      onClick={() => handleDateClick(dateStr)}
+                    >
+                      {d}
+                    </div>
+                  );
+                }
+                return cells;
+              })()}
+            </div>
+
+            <div className="calendar-footer">
+              <button type="button" className="cancel-btn" onClick={() => { setStartDate(''); setEndDate(''); }}>Clear</button>
+              <button type="button" className="apply-btn" onClick={() => setShowCalendar(false)}>Apply</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
