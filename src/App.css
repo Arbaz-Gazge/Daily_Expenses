@@ -1829,6 +1829,7 @@ input:checked+.slider:before {
   background: var(--accent-color);
   transform-origin: bottom center;
   z-index: 1;
+  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Smooth bouncy sweep */
 }
 
 .needle-head {
