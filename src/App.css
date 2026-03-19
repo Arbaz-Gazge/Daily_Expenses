@@ -1523,47 +1523,19 @@ input:checked+.slider:before {
 .filter-item.full-width {
   grid-column: 1 / -1; /* Span full grid width */
 }
-
-/* Custom Calendar Picker Styles */
-.calendar-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 4000;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.calendar-modal-overlay.open {
-  opacity: 1;
-  visibility: visible;
-}
-
 .calendar-modal-content {
   background: var(--bg-secondary);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 1.5rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   max-width: 360px;
   width: 90%;
-  transform: translateY(20px);
-  opacity: 0;
-  transition: transform 0.3s ease, opacity 0.3s ease;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-}
-
-.calendar-modal-overlay.open .calendar-modal-content {
-  transform: translateY(0);
-  opacity: 1;
+  z-index: 2005;
+  border: 1px solid var(--border-color);
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .calendar-header {
