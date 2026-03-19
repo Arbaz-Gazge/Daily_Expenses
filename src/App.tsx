@@ -46,6 +46,8 @@ function App() {
   const [endDate, setEndDate] = useState('');
   const [isQuickAddMode, setIsQuickAddMode] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'single' | 'range'>('range');
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date()); // Month currently viewed in calendar
 
   // Settings
@@ -417,6 +419,12 @@ function App() {
   };
 
   const handleDateClick = (dateStr: string) => {
+    if (pickerMode === 'single') {
+      setDate(dateStr);
+      setShowCalendar(false);
+      return;
+    }
+
     if (!startDate || (startDate && endDate)) {
       setStartDate(dateStr);
       setEndDate('');
@@ -656,21 +664,49 @@ function App() {
                 <div className="form-row">
                   <div className="form-group half">
                     <label>Date</label>
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      required
-                    />
+                    <div 
+                      className="custom-select-trigger" 
+                      onClick={() => {
+                        setCalendarMonth(new Date(date || new Date()));
+                        setShowCalendar(true);
+                        setPickerMode('single'); // Need to handle this
+                      }}
+                      style={{ 
+                        background: 'var(--input-bg)', 
+                        border: '1.5px solid var(--border-color)', 
+                        borderRadius: '12px',
+                        padding: '0.85rem 1rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '1rem',
+                        color: 'var(--text-primary)'
+                      }}
+                    >
+                      {date ? date.split('-').reverse().join('/') : 'Select Date'}
+                      <span style={{ fontSize: '1.1rem' }}>📅</span>
+                    </div>
                   </div>
                   <div className="form-group half">
                     <label>Time</label>
-                    <input
-                      type="time"
-                      value={time}
-                      onChange={(e) => setTime(e.target.value)}
-                      required
-                    />
+                    <div 
+                      className="custom-select-trigger" 
+                      onClick={() => setShowTimePicker(true)}
+                      style={{ 
+                        background: 'var(--input-bg)', 
+                        border: '1.5px solid var(--border-color)', 
+                        borderRadius: '12px',
+                        padding: '0.85rem 1rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '1rem',
+                        color: 'var(--text-primary)'
+                      }}
+                    >
+                      {time ? formatTime(time) : 'Select Time'}
+                      <span style={{ fontSize: '1.1rem' }}>🕒</span>
+                    </div>
                   </div>
                 </div>
 
@@ -847,9 +883,12 @@ function App() {
                       <div className="filter-item">
                         <label>Date Range</label>
                         <div className="custom-select-wrapper">
-                          <div
+                          <div 
                             className={`custom-select-trigger filter-select ${activeDropdown === 'dateFilter' ? 'open' : ''}`}
-                            onClick={() => setActiveDropdown('dateFilter')}
+                            onClick={() => {
+                              setActiveDropdown('dateFilter');
+                              setPickerMode('range');
+                            }}
                           >
                             {dateFilter === 'All' ? 'All Dates' : dateFilter}
                           </div>
@@ -1179,10 +1218,10 @@ function App() {
                 }
                 for (let d = 1; d <= days; d++) {
                   const dateStr = formatCalDate(calendarMonth.getFullYear(), calendarMonth.getMonth(), d);
-                  const isStart = dateStr === startDate;
-                  const isEnd = dateStr === endDate;
-                  const hasSelection = !!(startDate && endDate);
-                  const isInRange = startDate && endDate && dateStr > startDate && dateStr < endDate;
+                  const isStart = pickerMode === 'range' ? dateStr === startDate : dateStr === date;
+                  const isEnd = pickerMode === 'range' ? dateStr === endDate : false;
+                  const hasSelection = pickerMode === 'range' ? !!(startDate && endDate) : !!date;
+                  const isInRange = pickerMode === 'range' ? (startDate && endDate && dateStr > startDate && dateStr < endDate) : false;
                   
                   const todayObj = new Date();
                   const todayStr = formatCalDate(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
@@ -1202,9 +1241,60 @@ function App() {
               })()}
             </div>
 
-            <div className="calendar-footer">
-              <button type="button" className="cancel-btn" onClick={() => { setStartDate(''); setEndDate(''); }}>Clear</button>
-              <button type="button" className="apply-btn" onClick={() => setShowCalendar(false)}>Apply</button>
+            {pickerMode === 'range' && (
+              <div className="calendar-footer">
+                <button type="button" className="cancel-btn" onClick={() => { setStartDate(''); setEndDate(''); }}>Clear</button>
+                <button type="button" className="apply-btn" onClick={() => setShowCalendar(false)}>Apply</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Custom Time Picker Modal */}
+      {showTimePicker && (
+        <div className="modal-overlay" onClick={() => setShowTimePicker(false)}>
+          <div className="time-picker-modal" onClick={e => e.stopPropagation()}>
+            <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>Select Time</h3>
+            <div className="time-picker-content">
+              <div className="time-column">
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>Hour</label>
+                <div className="time-scroll">
+                  {Array.from({ length: 24 }, (_, i) => {
+                    const h = String(i).padStart(2, '0');
+                    const [currentH] = time.split(':');
+                    return (
+                      <div 
+                        key={h} 
+                        className={`time-unit ${h === currentH ? 'selected' : ''}`}
+                        onClick={() => setTime(`${h}:${time.split(':')[1] || '00'}`)}
+                      >
+                        {h}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="time-column">
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>Minute</label>
+                <div className="time-scroll">
+                  {Array.from({ length: 60 }, (__, i) => {
+                    const m = String(i).padStart(2, '0');
+                    const [, currentM] = time.split(':');
+                    return (
+                      <div 
+                        key={m} 
+                        className={`time-unit ${m === currentM ? 'selected' : ''}`}
+                        onClick={() => setTime(`${time.split(':')[0] || '12'}:${m}`)}
+                      >
+                        {m}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="calendar-footer" style={{ marginTop: '1.5rem', border: 'none', padding: 0 }}>
+               <button type="button" className="apply-btn" style={{ width: '100%' }} onClick={() => setShowTimePicker(false)}>Done</button>
             </div>
           </div>
         </div>
