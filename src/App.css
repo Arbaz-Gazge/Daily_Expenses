@@ -1172,16 +1172,16 @@ input:checked+.slider:before {
 
 .num-pad-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
 }
 
 .num-pad-key {
   background: var(--bg-primary);
   border: none;
-  border-radius: 16px;
-  padding: 1.25rem;
-  font-size: 1.5rem;
+  border-radius: 12px;
+  padding: 0.85rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--text-primary);
   cursor: pointer;
@@ -1208,6 +1208,16 @@ input:checked+.slider:before {
   color: #fc8181;
 }
 
+.num-pad-key.operator {
+  background: rgba(32, 227, 178, 0.15);
+  color: var(--accent-dark);
+}
+
+.dark-mode .num-pad-key.operator {
+  background: rgba(32, 227, 178, 0.1);
+  color: var(--accent-color);
+}
+
 .dark-mode .num-pad-key.delete {
   background: #442727;
 }
@@ -1215,10 +1225,10 @@ input:checked+.slider:before {
 .num-pad-key.done {
   background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
   color: white;
-  grid-column: span 3;
-  margin-top: 0.5rem;
-  font-size: 1.2rem;
-  padding: 1rem;
+  grid-column: span 4;
+  margin-top: 0.4rem;
+  font-size: 1.1rem;
+  padding: 0.85rem;
 }
 
 /* Search Bar Styles */

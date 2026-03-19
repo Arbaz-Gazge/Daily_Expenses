@@ -73,18 +73,47 @@ function App() {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [showNumPad, setShowNumPad] = useState(false);
 
+  const evaluateExpression = (expr: string) => {
+    try {
+      // Remove any trailing operators before calculating
+      const cleanExpr = expr.replace(/[+\-*/]$/, '');
+      if (!cleanExpr) return '0';
+      
+      // Simple evaluator using Function constructor for basic math
+      // Safe here because we control the input (only numbers and operators)
+      // eslint-disable-next-line no-new-func
+      const result = new Function(`return ${cleanExpr}`)();
+      if (isNaN(result) || !isFinite(result)) return '0';
+      
+      // Format to 2 decimal places if needed
+      return Number.isInteger(result) ? result.toString() : result.toFixed(2);
+    } catch (e) {
+      return expr;
+    }
+  };
+
   const handleNumPadPress = (value: string) => {
     if (value === 'back') {
       setAmount(amount.slice(0, -1));
+    } else if (value === '=') {
+      setAmount(evaluateExpression(amount));
+    } else if (['+', '-', '*', '/'].includes(value)) {
+      // Don't add operator if expression is empty or last char is already an operator
+      if (amount !== '' && !['+', '-', '*', '/'].includes(amount.slice(-1))) {
+        setAmount(amount + value);
+      }
     } else if (value === '.') {
-      if (!amount.includes('.')) {
+      // Only allow decimal in the current segment of the expression
+      const parts = amount.split(/[+\-*/]/);
+      const lastPart = parts[parts.length - 1];
+      if (!lastPart.includes('.')) {
         setAmount(amount === '' ? '0.' : amount + '.');
       }
     } else {
-      if (amount.includes('.')) {
-        const [, decimal] = amount.split('.');
-        if (decimal && decimal.length >= 2) return;
-      }
+      // Numeric entry
+      // If we just clicked an operator, we can start a new number
+      // We don't need strict 2-decimal validation FOR THE EXPRESSION, 
+      // the evaluateExpression will handle it at the end.
       setAmount(amount === '0' ? value : amount + value);
     }
   };
@@ -947,11 +976,11 @@ function App() {
             )}
 
             <div className="num-pad-grid">
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'].map(key => (
+              {['1', '2', '3', '+', '4', '5', '6', '-', '7', '8', '9', '*', '.', '0', '=', '/', 'back'].map(key => (
                 <button
                   key={key}
                   type="button"
-                  className={`num-pad-key ${key === 'back' ? 'delete' : (key === '.' ? 'special' : '')}`}
+                  className={`num-pad-key ${key === 'back' ? 'delete' : (['+', '-', '*', '/', '='].includes(key) ? 'operator' : (key === '.' ? 'special' : ''))}`}
                   onClick={() => handleNumPadPress(key)}
                 >
                   {key === 'back' ? '⌫' : key}
@@ -962,9 +991,18 @@ function App() {
                   type="button" 
                   className="quick-add-save-btn" 
                   onClick={(e) => {
-                    addExpense(e as any);
-                    setShowNumPad(false);
-                    setIsQuickAddMode(false);
+                    const finalAmount = evaluateExpression(amount);
+                    if (finalAmount === '0' || isNaN(parseFloat(finalAmount))) {
+                      alert('Please enter a valid amount');
+                      return;
+                    }
+                    // Temporarily set evaluated amount to ensure addExpense uses it
+                    setAmount(finalAmount);
+                    setTimeout(() => {
+                      addExpense(e as any);
+                      setShowNumPad(false);
+                      setIsQuickAddMode(false);
+                    }, 0);
                   }}
                 >
                   Save Entry
@@ -973,7 +1011,11 @@ function App() {
                 <button 
                   type="button" 
                   className="num-pad-key done" 
-                  onClick={() => setShowNumPad(false)}
+                  onClick={() => {
+                    setAmount(evaluateExpression(amount));
+                    setShowNumPad(false);
+                    setIsQuickAddMode(false);
+                  }}
                 >
                   Done
                 </button>
