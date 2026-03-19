@@ -1748,10 +1748,15 @@ input:checked+.slider:before {
   font-weight: 400;
   color: #000;
   cursor: pointer;
-  padding: 4px 12px;
-  border-radius: 4px;
+  padding: 8px 12px;
+  border-radius: 8px;
   background: #f0f0f0;
   line-height: 1;
+  min-width: 90px;
+  height: 90px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .clock-large-text.active {
@@ -1801,13 +1806,13 @@ input:checked+.slider:before {
 }
 
 .ampm-btn.active {
-  background: #f3e5f5;
-  color: #6200ee;
+  background: #6200ee;
+  color: white;
 }
 
 .dark-mode .ampm-btn.active {
-  background: #3700b3;
-  color: #bb86fc;
+  background: #6200ee;
+  color: #fff;
 }
 
 .clock-face-container {
@@ -1818,8 +1823,8 @@ input:checked+.slider:before {
 }
 
 .clock-face {
-  width: 210px;
-  height: 210px;
+  width: 240px;
+  height: 240px;
   background: #eeeeee;
   border-radius: 50%;
   position: relative;
@@ -1833,8 +1838,8 @@ input:checked+.slider:before {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   background: #6200ee;
   border-radius: 50%;
   transform: translate(-50%, -50%);
@@ -1850,7 +1855,7 @@ input:checked+.slider:before {
   top: 50%;
   left: 50%;
   width: 2px;
-  height: 40%;
+  height: 38%; /* Adjusted length */
   background: #6200ee;
   transform-origin: bottom center;
   transform: translate(-50%, -100%);
@@ -1866,8 +1871,8 @@ input:checked+.slider:before {
   position: absolute;
   top: 0;
   left: 50%;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   background: #6200ee;
   border-radius: 50%;
   transform: translate(-50%, -50%);

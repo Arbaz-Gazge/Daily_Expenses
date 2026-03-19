@@ -1257,7 +1257,7 @@ function App() {
           <div className="clock-picker-modal" onClick={e => e.stopPropagation()}>
             <div className="clock-header">
               <div className="clock-time-display">
-                <span 
+                <div 
                   className={`clock-large-text ${timeSelectionMode === 'hour' ? 'active' : ''}`}
                   onClick={() => setTimeSelectionMode('hour')}
                 >
@@ -1266,14 +1266,14 @@ function App() {
                     const hour = parseInt(h);
                     return String(hour % 12 || 12);
                   })()}
-                </span>
+                </div>
                 <span className="clock-separator">:</span>
-                <span 
+                <div 
                   className={`clock-large-text ${timeSelectionMode === 'minute' ? 'active' : ''}`}
                   onClick={() => setTimeSelectionMode('minute')}
                 >
                   {time.split(':')[1] || '00'}
-                </span>
+                </div>
               </div>
               <div className="clock-ampm-toggle">
                 <div 
@@ -1281,7 +1281,7 @@ function App() {
                   onClick={() => {
                     const [h, m] = time.split(':');
                     const hour = parseInt(h);
-                    if (hour >= 12) setTime(`${hour - 12}:${m}`);
+                    if (hour >= 12) setTime(`${String(hour - 12).padStart(2, '0')}:${m}`);
                   }}
                 >
                   AM
@@ -1291,7 +1291,7 @@ function App() {
                   onClick={() => {
                     const [h, m] = time.split(':');
                     const hour = parseInt(h);
-                    if (hour < 12) setTime(`${hour + 12}:${m}`);
+                    if (hour < 12) setTime(`${String(hour + 12).padStart(2, '0')}:${m}`);
                   }}
                 >
                   PM
@@ -1300,7 +1300,33 @@ function App() {
             </div>
 
             <div className="clock-face-container">
-              <div className="clock-face">
+              <div 
+                className="clock-face"
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const centerX = rect.width / 2;
+                  const centerY = rect.height / 2;
+                  const x = e.clientX - rect.left - centerX;
+                  const y = e.clientY - rect.top - centerY;
+                  
+                  let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
+                  if (angle < 0) angle += 360;
+
+                  const [h, m] = time.split(':');
+                  if (timeSelectionMode === 'hour') {
+                    let hour = Math.round(angle / 30);
+                    if (hour === 0) hour = 12;
+                    const isPM = parseInt(h) >= 12;
+                    const finalH = hour === 12 ? (isPM ? 12 : 0) : (isPM ? hour + 12 : hour);
+                    setTime(`${String(finalH).padStart(2, '0')}:${m}`);
+                    setTimeout(() => setTimeSelectionMode('minute'), 300);
+                  } else {
+                    let minute = Math.round(angle / 6);
+                    if (minute === 60) minute = 0;
+                    setTime(`${h}:${String(minute).padStart(2, '0')}`);
+                  }
+                }}
+              >
                 <div className="clock-center-dot"></div>
                 {/* Needle */}
                 <div 
@@ -1324,21 +1350,15 @@ function App() {
                     const val = i + 1;
                     const angle = (val * 30) - 90;
                     const rad = (angle * Math.PI) / 180;
-                    const x = 50 + 40 * Math.cos(rad);
-                    const y = 50 + 40 * Math.sin(rad);
-                    const [h, m] = time.split(':');
+                    const x = 50 + 38 * Math.cos(rad);
+                    const y = 50 + 38 * Math.sin(rad);
+                    const [h] = time.split(':');
                     const currentH12 = parseInt(h) % 12 || 12;
                     return (
                       <div 
                         key={val} 
                         className={`clock-number ${val === currentH12 ? 'selected' : ''}`}
                         style={{ left: `${x}%`, top: `${y}%` }}
-                        onClick={() => {
-                          const isPM = parseInt(h) >= 12;
-                          const newH = val === 12 ? (isPM ? 12 : 0) : (isPM ? val + 12 : val);
-                          setTime(`${String(newH).padStart(2, '0')}:${m}`);
-                          setTimeout(() => setTimeSelectionMode('minute'), 300);
-                        }}
                       >
                         {val}
                       </div>
@@ -1348,18 +1368,15 @@ function App() {
                   [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(val => {
                     const angle = (val * 6) - 90;
                     const rad = (angle * Math.PI) / 180;
-                    const x = 50 + 40 * Math.cos(rad);
-                    const y = 50 + 40 * Math.sin(rad);
-                    const [h, m] = time.split(':');
+                    const x = 50 + 38 * Math.cos(rad);
+                    const y = 50 + 38 * Math.sin(rad);
+                    const [_, m] = time.split(':');
                     const currentM = parseInt(m);
                     return (
                       <div 
                         key={val} 
                         className={`clock-number ${val === currentM ? 'selected' : ''}`}
                         style={{ left: `${x}%`, top: `${y}%` }}
-                        onClick={() => {
-                          setTime(`${h}:${String(val).padStart(2, '0')}`);
-                        }}
                       >
                         {val}
                       </div>
