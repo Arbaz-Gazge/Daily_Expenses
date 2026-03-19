@@ -36,7 +36,7 @@ function App() {
   const [currentView, setCurrentView] = useState('Add Expense');
 
   // Filters state
-  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [categoryFilters, setCategoryFilters] = useState<string[]>(['All']);
   const [dateFilter, setDateFilter] = useState('All');
   const [paymentModeFilter, setPaymentModeFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,7 +150,8 @@ function App() {
       const savedFilters = await Preferences.get({ key: 'filters' });
       if (savedFilters.value) {
         const filtersData = JSON.parse(savedFilters.value);
-        if (filtersData.categoryFilter) setCategoryFilter(filtersData.categoryFilter);
+         if (filtersData.categoryFilters) setCategoryFilters(filtersData.categoryFilters);
+         else if (filtersData.categoryFilter) setCategoryFilters([filtersData.categoryFilter]);
         if (filtersData.dateFilter) setDateFilter(filtersData.dateFilter);
         if (filtersData.paymentModeFilter) setPaymentModeFilter(filtersData.paymentModeFilter);
         if (filtersData.startDate) setStartDate(filtersData.startDate);
@@ -188,11 +189,11 @@ function App() {
     }
   }, [settings, dataLoaded]);
 
-  useEffect(() => {
+   useEffect(() => {
     if (!dataLoaded) return;
-    const filters = { categoryFilter, dateFilter, paymentModeFilter, startDate, endDate };
+    const filters = { categoryFilters, dateFilter, paymentModeFilter, startDate, endDate };
     Preferences.set({ key: 'filters', value: JSON.stringify(filters) });
-  }, [categoryFilter, dateFilter, paymentModeFilter, startDate, endDate, dataLoaded]);
+  }, [categoryFilters, dateFilter, paymentModeFilter, startDate, endDate, dataLoaded]);
 
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -301,9 +302,11 @@ function App() {
           exp.category === oldName ? { ...exp, category: trimmedName } : exp
         ));
 
-        // Update filter if active
-        if (categoryFilter === oldName) setCategoryFilter(trimmedName);
-        if (category === oldName) setCategory(trimmedName);
+         // Update filter if active
+         if (categoryFilters.includes(oldName)) {
+           setCategoryFilters(prev => prev.map(c => c === oldName ? trimmedName : c));
+         }
+         if (category === oldName) setCategory(trimmedName);
 
         setEditingCategoryIdx(null);
       } else {
@@ -316,9 +319,31 @@ function App() {
     }
   };
 
-  const deleteCategory = (catToDelete: string) => {
+  const toggleCategoryFilter = (cat: string) => {
+    if (cat === 'All') {
+      setCategoryFilters(['All']);
+      return;
+    }
+    
+    setCategoryFilters(prev => {
+      const withoutAll = prev.filter(c => c !== 'All');
+      if (withoutAll.includes(cat)) {
+        const next = withoutAll.filter(c => c !== cat);
+        return next.length === 0 ? ['All'] : next;
+      } else {
+        return [...withoutAll, cat];
+      }
+    });
+  };
+
+   const deleteCategory = (catToDelete: string) => {
     setCategories(categories.filter(cat => cat !== catToDelete));
-    if (categoryFilter === catToDelete) setCategoryFilter('All');
+    if (categoryFilters.includes(catToDelete)) {
+      setCategoryFilters(prev => {
+        const next = prev.filter(c => c !== catToDelete);
+        return next.length === 0 ? ['All'] : next;
+      });
+    }
     if (category === catToDelete) setCategory('');
   };
 
@@ -328,7 +353,9 @@ function App() {
   };
 
   const filteredExpenses = expenses.filter(expense => {
-    if (categoryFilter !== 'All' && expense.category !== categoryFilter) return false;
+    if (!categoryFilters.includes('All')) {
+      if (!categoryFilters.includes(expense.category || 'Uncategorized')) return false;
+    }
     if (paymentModeFilter !== 'All' && expense.paymentMode !== paymentModeFilter) return false;
 
     if (searchQuery.trim() !== '') {
@@ -722,30 +749,53 @@ function App() {
                       </div>
                     )}
                     <div className="filters-grid">
-                      <div className="filter-item">
-                        <label>Category</label>
-                        <div className="custom-select-wrapper">
-                          <div
-                            className={`custom-select-trigger filter-select ${activeDropdown === 'catFilter' ? 'open' : ''}`}
-                            onClick={() => setActiveDropdown('catFilter')}
-                          >
-                            {categoryFilter === 'All' ? 'All Categories' : categoryFilter}
-                          </div>
-                          {activeDropdown === 'catFilter' && (
-                            <div className="popup-dropdown-container">
-                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                              <ul className="custom-dropdown popup">
-                                <div className="popup-header">Filter by Category</div>
-                                <li onClick={() => { setCategoryFilter('All'); setActiveDropdown(null); }}>All Categories</li>
-                                {categories.map(cat => (
-                                  <li key={cat} onClick={() => { setCategoryFilter(cat); setActiveDropdown(null); }}>{cat}</li>
-                                ))}
-                                <li onClick={() => { setCategoryFilter('Uncategorized'); setActiveDropdown(null); }}>Uncategorized</li>
-                              </ul>
+                          <div className="filter-item">
+                            <label>Categories</label>
+                            <div className="custom-select-wrapper">
+                              <div
+                                className={`custom-select-trigger filter-select ${activeDropdown === 'catFilter' ? 'open' : ''}`}
+                                onClick={() => setActiveDropdown('catFilter')}
+                              >
+                                {categoryFilters.includes('All') 
+                                  ? 'All Categories' 
+                                  : categoryFilters.length === 1 
+                                    ? categoryFilters[0] 
+                                    : `${categoryFilters.length} Categories`}
+                              </div>
+                              {activeDropdown === 'catFilter' && (
+                                <div className="popup-dropdown-container">
+                                  <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                                  <ul className="custom-dropdown popup multi-select">
+                                    <div className="popup-header">Filter by Category</div>
+                                    <li 
+                                      className={categoryFilters.includes('All') ? 'selected' : ''} 
+                                      onClick={() => toggleCategoryFilter('All')}
+                                    >
+                                      <span className="checkbox">{categoryFilters.includes('All') ? '✓' : ''}</span>
+                                      All Categories
+                                    </li>
+                                    {categories.map(cat => (
+                                      <li 
+                                        key={cat} 
+                                        className={categoryFilters.includes(cat) ? 'selected' : ''} 
+                                        onClick={() => toggleCategoryFilter(cat)}
+                                      >
+                                        <span className="checkbox">{categoryFilters.includes(cat) ? '✓' : ''}</span>
+                                        {cat}
+                                      </li>
+                                    ))}
+                                    <li 
+                                      className={categoryFilters.includes('Uncategorized') ? 'selected' : ''} 
+                                      onClick={() => toggleCategoryFilter('Uncategorized')}
+                                    >
+                                      <span className="checkbox">{categoryFilters.includes('Uncategorized') ? '✓' : ''}</span>
+                                      Uncategorized
+                                    </li>
+                                  </ul>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </div>
+                          </div>
 
                       <div className="filter-item">
                         <label>Payment Mode</label>
@@ -816,12 +866,12 @@ function App() {
                       )}
                     </div>
 
-                    {(categoryFilter !== 'All' || paymentModeFilter !== 'All' || dateFilter !== 'All' || searchQuery !== '') && (
+                     {((categoryFilters.length > 0 && !categoryFilters.includes('All')) || paymentModeFilter !== 'All' || dateFilter !== 'All' || searchQuery !== '') && (
                       <button
                         type="button"
                         className="clear-filters-btn"
                         onClick={() => {
-                          setCategoryFilter('All');
+                          setCategoryFilters(['All']);
                           setPaymentModeFilter('All');
                           setDateFilter('All');
                           setSearchQuery('');
