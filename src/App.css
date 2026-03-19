@@ -1858,9 +1858,7 @@ input:checked+.slider:before {
   height: 38%; /* Adjusted length */
   background: #6200ee;
   transform-origin: bottom center;
-  transform: translate(-50%, -100%);
   z-index: 1;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark-mode .clock-needle {

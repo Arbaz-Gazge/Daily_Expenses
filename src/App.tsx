@@ -1332,7 +1332,7 @@ function App() {
                 <div 
                   className="clock-needle" 
                   style={{ 
-                    transform: `rotate(${(() => {
+                    transform: `translate(-50%, -100%) rotate(${(() => {
                       const [h, m] = time.split(':');
                       if (timeSelectionMode === 'hour') {
                         return (parseInt(h) % 12) * 30;
