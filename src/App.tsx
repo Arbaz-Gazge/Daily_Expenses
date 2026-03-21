@@ -98,6 +98,13 @@ function App() {
   const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([]);
   const [editingBankTransactionId, setEditingBankTransactionId] = useState<string | null>(null);
 
+  // Bank Statement Filter States
+  const [bankSearchQuery, setBankSearchQuery] = useState('');
+  const [bankTypeFilter, setBankTypeFilter] = useState<'All' | 'in' | 'out'>('All');
+  const [bankDateFilter, setBankDateFilter] = useState('All');
+  const [bankStartDate, setBankStartDate] = useState('');
+  const [bankEndDate, setBankEndDate] = useState('');
+
   const defaultCategories = [
     "Food & Dining",
     "Transportation",
@@ -1386,14 +1393,106 @@ function App() {
                       </div>
 
                       <div className="detail-statement-section">
-                        <h2 className="section-title">Account Statement</h2>
-                        <div className="statement-full-list">
-                          {bankTransactions.filter(t => t.bankId === bank.id).length === 0 ? (
-                            <div className="empty-statement">
-                              <p>No transaction records found for this account.</p>
+                        <div className="statement-header-group">
+                          <h2 className="section-title">Account Statement</h2>
+                          <div className="statement-controls">
+                            <div className="statement-search">
+                              <input 
+                                type="text" 
+                                placeholder="Search here..." 
+                                value={bankSearchQuery}
+                                onChange={e => setBankSearchQuery(e.target.value)}
+                              />
                             </div>
-                          ) : (
-                            bankTransactions.filter(t => t.bankId === bank.id).map(trx => (
+                            <div className="statement-filters-row">
+                                <select value={bankTypeFilter} onChange={e => setBankTypeFilter(e.target.value as any)}>
+                                  <option value="All">All Types</option>
+                                  <option value="in">Cash In</option>
+                                  <option value="out">Cash Out</option>
+                                </select>
+                                <select value={bankDateFilter} onChange={e => setBankDateFilter(e.target.value)}>
+                                  <option value="All">All Time</option>
+                                  <option value="Today">Today</option>
+                                  <option value="Yesterday">Yesterday</option>
+                                  <option value="Last 7 Days">Last 7 Days</option>
+                                  <option value="Last 30 Days">Last 30 Days</option>
+                                  <option value="Custom">Custom Range</option>
+                                </select>
+                            </div>
+                            {bankDateFilter === 'Custom' && (
+                              <div className="statement-filters-row anim-fade-in" style={{ marginTop: '0.5rem' }}>
+                                <input 
+                                  type="date" 
+                                  className="modal-input" 
+                                  value={bankStartDate} 
+                                  onChange={e => setBankStartDate(e.target.value)} 
+                                  style={{ flex: 1, padding: '0.5rem' }} 
+                                />
+                                <input 
+                                  type="date" 
+                                  className="modal-input" 
+                                  value={bankEndDate} 
+                                  onChange={e => setBankEndDate(e.target.value)} 
+                                  style={{ flex: 1, padding: '0.5rem' }} 
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="statement-full-list">
+                          {(() => {
+                            let filteredList = bankTransactions.filter(t => t.bankId === bank.id);
+                            
+                            // Type Filter
+                            if (bankTypeFilter !== 'All') {
+                              filteredList = filteredList.filter(t => t.type === bankTypeFilter);
+                            }
+
+                            // Search Filter
+                            if (bankSearchQuery.trim() !== '') {
+                              const q = bankSearchQuery.toLowerCase();
+                              filteredList = filteredList.filter(t => 
+                                t.description.toLowerCase().includes(q) || 
+                                t.category?.toLowerCase().includes(q)
+                              );
+                            }
+
+                            // Date Filter
+                            if (bankDateFilter !== 'All') {
+                                const today = new Date();
+                                const todayStr = getLocalDateStr(today);
+                                const yesterday = new Date(today);
+                                yesterday.setDate(yesterday.getDate() - 1);
+                                const yesterdayStr = getLocalDateStr(yesterday);
+                                const sevenDaysAgo = new Date(today);
+                                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                                const thirtyDaysAgo = new Date(today);
+                                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+                                filteredList = filteredList.filter(t => {
+                                    if (bankDateFilter === 'Today') return t.date === todayStr;
+                                    if (bankDateFilter === 'Yesterday') return t.date === yesterdayStr;
+                                    if (bankDateFilter === 'Last 7 Days') return t.date >= getLocalDateStr(sevenDaysAgo);
+                                    if (bankDateFilter === 'Last 30 Days') return t.date >= getLocalDateStr(thirtyDaysAgo);
+                                    if (bankDateFilter === 'Custom') {
+                                      if (bankStartDate && t.date < bankStartDate) return false;
+                                      if (bankEndDate && t.date > bankEndDate) return false;
+                                      return true;
+                                    }
+                                    return true;
+                                });
+                            }
+
+                            if (filteredList.length === 0) {
+                              return (
+                                <div className="empty-statement">
+                                  <p>No transactions match your filters.</p>
+                                </div>
+                              );
+                            }
+
+                            return filteredList.map(trx => (
                               <div key={trx.id} className={`statement-row ${trx.type}`}>
                                 <div className="row-date">
                                   <span className="day">{trx.date.split('-')[2]}</span>
@@ -1407,18 +1506,18 @@ function App() {
                                     <span className="time">{formatTime(trx.time)}</span>
                                   </div>
                                 </div>
-                                  <div className="row-amount-group">
-                                    <div className={`row-amount ${trx.type}`}>
-                                      {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
-                                    </div>
-                                    <div className="row-actions">
-                                      <button className="row-btn edit" onClick={(e) => { e.stopPropagation(); startEditDeposit(trx); }}>✎</button>
-                                      <button className="row-btn delete" onClick={(e) => { e.stopPropagation(); deleteBankTransaction(trx); }}>✕</button>
-                                    </div>
+                                <div className="row-amount-group">
+                                  <div className={`row-amount ${trx.type}`}>
+                                    {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
+                                  </div>
+                                  <div className="row-actions">
+                                    <button className="row-btn edit" onClick={(e) => { e.stopPropagation(); startEditDeposit(trx); }}>✎</button>
+                                    <button className="row-btn delete" onClick={(e) => { e.stopPropagation(); deleteBankTransaction(trx); }}>✕</button>
                                   </div>
                                 </div>
-                            ))
-                          )}
+                              </div>
+                            ));
+                          })()}
                         </div>
                       </div>
                     </>

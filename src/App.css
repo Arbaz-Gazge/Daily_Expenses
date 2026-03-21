@@ -2305,6 +2305,60 @@ input:checked+.slider:before {
 .row-amount.in { color: #10b981; }
 .row-amount.out { color: #f43f5e; }
 
+.statement-header-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.statement-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.statement-search input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.statement-search input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(32, 227, 178, 0.1);
+}
+
+.statement-filters-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.statement-filters-row select {
+  flex: 1;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.statement-filters-row select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
 .row-amount-group {
   display: flex;
   flex-direction: column;
