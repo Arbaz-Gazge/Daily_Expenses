@@ -16,6 +16,12 @@ interface Expense {
   remark?: string;
 }
 
+interface Bank {
+  id: string;
+  name: string;
+  balance: number;
+}
+
 interface Settings {
   theme: 'light' | 'dark';
   timeFormat: '12h' | '24h';
@@ -64,6 +70,15 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Bank States
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [bankName, setBankName] = useState('');
+  const [bankBalance, setBankBalance] = useState('');
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
 
   const defaultCategories = [
     "Food & Dining",
@@ -163,6 +178,8 @@ function App() {
         if (filtersData.startDate) setStartDate(filtersData.startDate);
         if (filtersData.endDate) setEndDate(filtersData.endDate);
       }
+      const savedBanks = await Preferences.get({ key: 'banks' });
+      if (savedBanks.value) setBanks(JSON.parse(savedBanks.value));
 
       setDataLoaded(true);
     };
@@ -183,6 +200,12 @@ function App() {
       Preferences.set({ key: 'categories', value: JSON.stringify(categories) });
     }
   }, [categories]);
+
+  useEffect(() => {
+    if (dataLoaded) {
+      Preferences.set({ key: 'banks', value: JSON.stringify(banks) });
+    }
+  }, [banks, dataLoaded]);
 
   useEffect(() => {
     if (!dataLoaded) return; // Prevent overwriting storage with defaults on first mount
@@ -211,12 +234,16 @@ function App() {
     e.preventDefault();
     if (!amount || !description || !date || !time) return;
 
+    // Evaluate math in amount if any
+    const finalAmount = evaluateExpression(amount);
+    const amountNum = parseFloat(finalAmount);
+
     if (editExpenseId) {
       setExpenses(expenses.map(exp =>
         exp.id === editExpenseId
           ? {
             ...exp,
-            amount: parseFloat(amount),
+            amount: amountNum,
             description,
             category: category || 'Uncategorized',
             date,
@@ -230,7 +257,7 @@ function App() {
     } else {
       const newExpense: Expense = {
         id: Date.now().toString(),
-        amount: parseFloat(amount),
+        amount: amountNum,
         description,
         category: category || 'Uncategorized',
         date,
@@ -238,6 +265,17 @@ function App() {
         paymentMode: paymentMode || 'Not Specified',
         remark,
       };
+
+      // Handle bank balance deduction
+      const sourceBank = banks.find(b => b.name === (paymentMode || 'Not Specified'));
+      if (sourceBank) {
+        setBanks(prev => prev.map(b => 
+          b.id === sourceBank.id 
+            ? { ...b, balance: b.balance - amountNum } 
+            : b
+        ));
+      }
+
       setExpenses([...expenses, newExpense]);
     }
 
@@ -279,6 +317,39 @@ function App() {
   const deleteExpense = (id: string) => {
     setExpenses(expenses.filter(e => e.id !== id));
     setDeleteId(null);
+  };
+
+  const addBank = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bankName) return;
+    const newBank: Bank = {
+      id: Date.now().toString(),
+      name: bankName,
+      balance: parseFloat(bankBalance) || 0
+    };
+    setBanks([...banks, newBank]);
+    setBankName('');
+    setBankBalance('');
+    setShowBankModal(false);
+  };
+
+  const handleDeposit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBankId || !depositAmount) return;
+    setBanks(prev => prev.map(b => 
+      b.id === selectedBankId 
+        ? { ...b, balance: b.balance + parseFloat(depositAmount) } 
+        : b
+    ));
+    setDepositAmount('');
+    setShowDepositModal(false);
+    setSelectedBankId(null);
+  };
+
+  const deleteBank = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this bank?')) {
+      setBanks(banks.filter(b => b.id !== id));
+    }
   };
 
   const handleEdit = (expense: Expense) => {
@@ -515,7 +586,7 @@ function App() {
   const totalExpense = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   const handleBackup = async () => {
-    const dataStr = JSON.stringify({ expenses, categories, settings }, null, 2);
+    const dataStr = JSON.stringify({ expenses, categories, settings, banks }, null, 2);
     const fileName = `expense_backup_${new Date().toISOString().split('T')[0]}.json`;
 
     if (Capacitor.isNativePlatform()) {
@@ -559,6 +630,7 @@ function App() {
         if (data.expenses) setExpenses(data.expenses);
         if (data.categories) setCategories(data.categories);
         if (data.settings) setSettings(data.settings);
+        if (data.banks) setBanks(data.banks);
         alert('Data restored successfully!');
       } catch (err) {
         alert('Invalid backup file format.');
@@ -587,6 +659,9 @@ function App() {
           </li>
           <li className={currentView === 'Dashboard' ? 'active' : ''} onClick={() => { handleViewSwitch('Dashboard'); setIsSidebarOpen(false); }}>
             Dashboard
+          </li>
+          <li className={currentView === 'Banks' ? 'active' : ''} onClick={() => { handleViewSwitch('Banks'); setIsSidebarOpen(false); }}>
+            Banks
           </li>
           <li className={currentView === 'Backup & Restore' ? 'active' : ''} onClick={() => { handleViewSwitch('Backup & Restore'); setIsSidebarOpen(false); }}>
             Backup & Restore
@@ -780,6 +855,10 @@ function App() {
                           <div className="popup-header">Payment Mode</div>
                           {['Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other'].map(mode => (
                             <li key={mode} onClick={() => { setPaymentMode(mode); setActiveDropdown(null); }}>{mode}</li>
+                          ))}
+                          {banks.length > 0 && <div className="popup-header" style={{ borderTop: '1px solid var(--border-color)', borderRadius: 0, padding: '0.75rem 1.25rem', fontSize: '0.9rem', background: 'var(--bg-primary)', color: 'var(--text-tertiary)' }}>Bank Accounts</div>}
+                          {banks.map(bank => (
+                            <li key={bank.id} onClick={() => { setPaymentMode(bank.name); setActiveDropdown(null); }}>{bank.name}</li>
                           ))}
                         </ul>
                       </div>
@@ -1055,7 +1134,47 @@ function App() {
                 </div>
               </div>
             )}
+            {currentView === 'Banks' && (
+              <div className="banks-container anim-fade-in">
+                <div className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ margin: 0 }}>Banks & Accounts</h2>
+                  <button className="add-bank-btn" onClick={() => setShowBankModal(true)}>+ Add Bank</button>
+                </div>
 
+                {banks.length === 0 ? (
+                  <div className="empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-secondary)', borderRadius: '20px', border: '1px dashed var(--border-color)' }}>
+                    <p style={{ color: 'var(--text-tertiary)', fontSize: '1.1rem' }}>No bank accounts added yet.</p>
+                    <button className="add-bank-btn" style={{ marginTop: '1rem' }} onClick={() => setShowBankModal(true)}>Create Your First Account</button>
+                  </div>
+                ) : (
+                  <div className="banks-grid">
+                    {banks.map(bank => (
+                      <div key={bank.id} className="bank-card shadow-sm">
+                        <div className="bank-card-header">
+                          <h3>{bank.name}</h3>
+                          <button className="delete-btn-bank" onClick={() => deleteBank(bank.id)}>✕</button>
+                        </div>
+                        <div className="bank-balance">
+                          <span>Current Balance</span>
+                          <div className="amount">₹{bank.balance.toFixed(2)}</div>
+                        </div>
+                        <div className="bank-actions">
+                          <button 
+                            className="cash-in-btn"
+                            onClick={() => {
+                              setSelectedBankId(bank.id);
+                              setShowDepositModal(true);
+                            }}
+                          >
+                            + Cash In (Deposit)
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {currentView === 'About Us' && (
               <div className="about-container">
                 <h2>About Expense Tracker</h2>
@@ -1141,6 +1260,74 @@ function App() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bank Manager Modals */}
+      {showBankModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Add New Bank</h3>
+              <button className="close-btn" style={{ position: 'static', color: 'var(--text-primary)' }} onClick={() => setShowBankModal(false)}>&times;</button>
+            </div>
+            <form onSubmit={addBank}>
+              <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
+                <label>Bank Name</label>
+                <input 
+                  type="text" 
+                  value={bankName} 
+                  onChange={e => setBankName(e.target.value)} 
+                  placeholder="e.g. HDFC Bank" 
+                  className="modal-input"
+                  required 
+                />
+              </div>
+              <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
+                <label>Initial Balance (₹)</label>
+                <input 
+                  type="number" 
+                  value={bankBalance} 
+                  onChange={e => setBankBalance(e.target.value)} 
+                  placeholder="0.00" 
+                  className="modal-input"
+                />
+              </div>
+              <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
+                <button type="button" className="modal-btn cancel" onClick={() => setShowBankModal(false)}>Cancel</button>
+                <button type="submit" className="modal-btn primary">Save Bank</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showDepositModal && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h3>Cash In (Deposit)</h3>
+              <button className="close-btn" style={{ position: 'static', color: 'var(--text-primary)' }} onClick={() => setShowDepositModal(false)}>&times;</button>
+            </div>
+            <form onSubmit={handleDeposit}>
+              <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
+                <label>Deposit Amount (₹)</label>
+                <input 
+                  type="number" 
+                  value={depositAmount} 
+                  onChange={e => setDepositAmount(e.target.value)} 
+                  placeholder="0.00" 
+                  className="modal-input"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
+                <button type="button" className="modal-btn cancel" onClick={() => setShowDepositModal(false)}>Cancel</button>
+                <button type="submit" className="modal-btn primary">Deposit</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
