@@ -93,6 +93,7 @@ function App() {
   const [depositCategory, setDepositCategory] = useState('');
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
   const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([]);
+  const [editingBankTransactionId, setEditingBankTransactionId] = useState<string | null>(null);
 
   const defaultCategories = [
     "Food & Dining",
@@ -111,7 +112,7 @@ function App() {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [showNumPad, setShowNumPad] = useState(false);
 
-  const defaultDepositCategories = ["Salary", "Investment", "Gift", "Refund", "Bank Transfer", "Other"];
+  const defaultDepositCategories = ["Salary", "Investment", "Gift", "Refund", "Bank Transfer", "Opening Balance", "Other"];
   const [depositCategories, setDepositCategories] = useState<string[]>([]);
   const [isDepositCategoryModalOpen, setIsDepositCategoryModalOpen] = useState(false);
   const [editingDepositCategoryIdx, setEditingDepositCategoryIdx] = useState<number | null>(null);
@@ -136,6 +137,9 @@ function App() {
       return expr;
     }
   };
+
+  const getLocalDateStr = (d: Date) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const getLocalTimeStr = (d: Date) => d.toTimeString().split(' ')[0].substring(0, 5);
 
   const handleNumPadPress = (value: string) => {
     if (value === 'back') {
@@ -379,51 +383,107 @@ function App() {
   const addBank = (e: React.FormEvent) => {
     e.preventDefault();
     if (!bankName) return;
+    const now = new Date();
+    const bankId = now.getTime().toString();
+    const amountNum = parseFloat(bankBalance) || 0;
+    
+    if (amountNum > 0) {
+      const trx: BankTransaction = {
+        id: bankId + '_initial',
+        bankId: bankId,
+        amount: amountNum,
+        type: 'in',
+        description: 'Opening Balance',
+        category: 'Opening Balance',
+        date: getLocalDateStr(now),
+        time: getLocalTimeStr(now)
+      };
+      setBankTransactions(prev => [trx, ...prev]);
+    }
+
     const newBank: Bank = {
-      id: Date.now().toString(),
+      id: bankId,
       name: bankName,
-      balance: parseFloat(bankBalance) || 0
+      balance: amountNum
     };
-    setBanks([...banks, newBank]);
+    setBanks(prev => [...prev, newBank]);
     setBankName('');
     setBankBalance('');
     setShowBankModal(false);
+  };
+
+  const startEditDeposit = (tx: BankTransaction) => {
+    setEditingBankTransactionId(tx.id);
+    setDepositAmount(tx.amount.toString());
+    setDepositDescription(tx.description);
+    setDepositCategory(tx.category);
+    setShowDepositModal(true);
+    setSelectedBankId(tx.bankId);
   };
 
   const handleDeposit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBankId || !depositAmount) return;
     const amountNum = parseFloat(depositAmount);
-    setBanks(prev => prev.map(b => 
-      b.id === selectedBankId 
-        ? { ...b, balance: b.balance + amountNum } 
-        : b
-    ));
 
-    // Create transaction record
-    const now = new Date();
-    const trx: BankTransaction = {
-      id: Date.now().toString() + '_in',
-      bankId: selectedBankId,
-      amount: amountNum,
-      type: 'in',
-      description: depositDescription || 'Deposit',
-      category: depositCategory || 'Cash In',
-      date: now.toISOString().split('T')[0], // and wait, today's date should be used
-      time: now.toTimeString().split(' ')[0].substring(0, 5)
-    };
-    setBankTransactions(prev => [trx, ...prev]);
+    if (editingBankTransactionId) {
+      // Handle Update
+      const oldTrx = bankTransactions.find(t => t.id === editingBankTransactionId);
+      if (oldTrx) {
+        const diff = amountNum - oldTrx.amount;
+        setBanks(prev => prev.map(b => b.id === selectedBankId ? { ...b, balance: b.balance + diff } : b));
+        setBankTransactions(prev => prev.map(t => 
+          t.id === editingBankTransactionId 
+            ? { ...t, amount: amountNum, description: depositDescription, category: depositCategory } 
+            : t
+        ));
+      }
+    } else {
+      // Handle New
+      setBanks(prev => prev.map(b => 
+        b.id === selectedBankId 
+          ? { ...b, balance: b.balance + amountNum } 
+          : b
+      ));
+
+      const now = new Date();
+      const trx: BankTransaction = {
+        id: now.getTime().toString() + '_in',
+        bankId: selectedBankId,
+        amount: amountNum,
+        type: 'in',
+        description: depositDescription || 'Deposit',
+        category: depositCategory || 'Cash In',
+        date: getLocalDateStr(now),
+        time: getLocalTimeStr(now)
+      };
+      setBankTransactions(prev => [trx, ...prev]);
+    }
 
     setDepositAmount('');
     setDepositDescription('');
     setDepositCategory('');
     setShowDepositModal(false);
     setSelectedBankId(null);
+    setEditingBankTransactionId(null);
   };
 
   const deleteBank = (id: string) => {
     if (window.confirm('Are you sure you want to delete this bank?')) {
       setBanks(banks.filter(b => b.id !== id));
+    }
+  };
+
+  const deleteBankTransaction = (tx: BankTransaction) => {
+    if (window.confirm('Delete this transaction? This will also revert the bank balance.')) {
+      if (tx.type === 'in') {
+        setBanks(prev => prev.map(b => b.id === tx.bankId ? { ...b, balance: b.balance - tx.amount } : b));
+      } else {
+        // For 'out', we don't automatically revert balance because it's usually linked to an expense
+        // which might still exist. But if the user deletes a bank 'out' trx, they probably want the balance back.
+        setBanks(prev => prev.map(b => b.id === tx.bankId ? { ...b, balance: b.balance + tx.amount } : b));
+      }
+      setBankTransactions(prev => prev.filter(t => t.id !== tx.id));
     }
   };
 
@@ -753,7 +813,18 @@ function App() {
   };
 
   return (
-    <div className="container">
+    <div className={`app-container ${settings.theme}`}>
+      {/* App Loading Splash Screen */}
+      {!dataLoaded && (
+        <div className="app-loading-screen">
+          <div className="splash-logo">Expense Tracker</div>
+          <div className="spinner-glow"></div>
+          <div className="loading-bar-container">
+            <div className="loading-bar-fill"></div>
+          </div>
+          <p>Loading your financial workspace...</p>
+        </div>
+      )}
       {/* Sidebar Overlay */}
       {isSidebarOpen && (
         <div className="sidebar-overlay" onClick={() => setIsSidebarOpen(false)}></div>
@@ -1333,10 +1404,16 @@ function App() {
                                     <span className="time">{formatTime(trx.time)}</span>
                                   </div>
                                 </div>
-                                <div className={`row-amount ${trx.type}`}>
-                                  {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
+                                  <div className="row-amount-group">
+                                    <div className={`row-amount ${trx.type}`}>
+                                      {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
+                                    </div>
+                                    <div className="row-actions">
+                                      <button className="row-btn edit" onClick={(e) => { e.stopPropagation(); startEditDeposit(trx); }}>✎</button>
+                                      <button className="row-btn delete" onClick={(e) => { e.stopPropagation(); deleteBankTransaction(trx); }}>✕</button>
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
                             ))
                           )}
                         </div>

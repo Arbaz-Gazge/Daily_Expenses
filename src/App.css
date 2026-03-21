@@ -2305,6 +2305,102 @@ input:checked+.slider:before {
 .row-amount.in { color: #10b981; }
 .row-amount.out { color: #f43f5e; }
 
+.row-amount-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.row-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+}
+
+.row-btn.edit:hover { background: var(--accent-color-light); color: #11998e; border-color: #11998e; }
+.row-btn.delete:hover { background: #fee2e2; color: #e53e3e; border-color: #e53e3e; }
+
+/* Splash Screen & Loading Bar */
+.app-loading-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--bg-primary);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-primary);
+}
+
+.splash-logo {
+  font-size: 2.5rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 2rem;
+  letter-spacing: -1px;
+}
+
+.spinner-glow {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(17, 153, 142, 0.1);
+  border-top-color: #11998e;
+  border-radius: 50%;
+  animation: spin 1s infinite linear;
+  box-shadow: 0 0 20px rgba(17, 153, 142, 0.2);
+  margin-bottom: 1.5rem;
+}
+
+.loading-bar-container {
+  width: 200px;
+  height: 4px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.loading-bar-fill {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #11998e, #38ef7d);
+  animation: loadingSlide 2s infinite ease-in-out;
+}
+
+@keyframes loadingSlide {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+
+.app-loading-screen p {
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
 .empty-statement {
   background: var(--bg-primary);
   padding: 3rem;
