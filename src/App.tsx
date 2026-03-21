@@ -52,6 +52,18 @@ function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState('Add Expense');
 
+  // Custom Alert / Confirm states
+  const [dialog, setDialog] = useState<{
+    show: boolean;
+    message: string;
+    type: 'alert' | 'confirm';
+    onConfirm?: () => void;
+  }>({ show: false, message: '', type: 'alert' });
+
+  const showAlert = (message: string) => setDialog({ show: true, message, type: 'alert' });
+  const showConfirm = (message: string, onConfirm: () => void) => setDialog({ show: true, message, type: 'confirm', onConfirm });
+  const closeDialog = () => setDialog({ ...dialog, show: false });
+
   // Filters state
   const [categoryFilters, setCategoryFilters] = useState<string[]>(['All']);
   const [dateFilter, setDateFilter] = useState('All');
@@ -479,22 +491,20 @@ function App() {
   };
 
   const deleteBank = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this bank?')) {
+    showConfirm('Are you sure you want to delete this bank?', () => {
       setBanks(banks.filter(b => b.id !== id));
-    }
+    });
   };
 
   const deleteBankTransaction = (tx: BankTransaction) => {
-    if (window.confirm('Delete this transaction? This will also revert the bank balance.')) {
+    showConfirm('Delete this transaction? This will also revert the bank balance.', () => {
       if (tx.type === 'in') {
         setBanks(prev => prev.map(b => b.id === tx.bankId ? { ...b, balance: b.balance - tx.amount } : b));
       } else {
-        // For 'out', we don't automatically revert balance because it's usually linked to an expense
-        // which might still exist. But if the user deletes a bank 'out' trx, they probably want the balance back.
         setBanks(prev => prev.map(b => b.id === tx.bankId ? { ...b, balance: b.balance + tx.amount } : b));
       }
       setBankTransactions(prev => prev.filter(t => t.id !== tx.id));
-    }
+    });
   };
 
   const handleEdit = (expense: Expense) => {
@@ -564,15 +574,17 @@ function App() {
     });
   };
 
-   const deleteCategory = (catToDelete: string) => {
-    setCategories(categories.filter(cat => cat !== catToDelete));
-    if (categoryFilters.includes(catToDelete)) {
-      setCategoryFilters(prev => {
-        const next = prev.filter(c => c !== catToDelete);
-        return next.length === 0 ? ['All'] : next;
-      });
-    }
-    if (category === catToDelete) setCategory('');
+  const deleteCategory = (catToDelete: string) => {
+    showConfirm(`Are you sure you want to delete "${catToDelete}" category?`, () => {
+      setCategories(categories.filter(cat => cat !== catToDelete));
+      if (categoryFilters.includes(catToDelete)) {
+        setCategoryFilters(prev => {
+          const next = prev.filter(c => c !== catToDelete);
+          return next.length === 0 ? ['All'] : next;
+        });
+      }
+      if (category === catToDelete) setCategory('');
+    });
   };
 
   const startEditCategory = (index: number) => {
@@ -611,8 +623,10 @@ function App() {
   };
 
   const deleteDepositCategory = (cat: string) => {
-    setDepositCategories(depositCategories.filter(c => c !== cat));
-    if (depositCategory === cat) setDepositCategory('');
+    showConfirm(`Are you sure you want to delete "${cat}" category?`, () => {
+      setDepositCategories(depositCategories.filter(c => c !== cat));
+      if (depositCategory === cat) setDepositCategory('');
+    });
   };
 
   const filteredExpenses = expenses.filter(expense => {
@@ -785,7 +799,7 @@ function App() {
         });
       } catch (err) {
         console.error('Error sharing backup file', err);
-        alert('Failed to generate backup file for sharing');
+        showAlert('Failed to generate backup file for sharing');
       }
     } else {
       const blob = new Blob([dataStr], { type: "application/json" });
@@ -813,9 +827,9 @@ function App() {
         if (data.banks) setBanks(data.banks);
         if (data.bankTransactions) setBankTransactions(data.bankTransactions);
         if (data.depositCategories) setDepositCategories(data.depositCategories);
-        alert('Data restored successfully!');
+        showAlert('Data restored successfully!');
       } catch (err) {
-        alert('Invalid backup file format.');
+        showAlert('Invalid backup file format.');
       }
     };
     reader.readAsText(file);
@@ -2110,6 +2124,33 @@ function App() {
             <div className="clock-footer">
               <button className="clock-btn flat" onClick={() => setShowTimePicker(false)}>CANCEL</button>
               <button className="clock-btn flat colored" onClick={() => setShowTimePicker(false)}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Alert/Confirm Dialog */}
+      {dialog.show && (
+        <div className="modal-overlay" style={{ zIndex: 10000 }}>
+          <div className="custom-dialog anim-pop-in">
+            <div className="dialog-content">
+              <p>{dialog.message}</p>
+            </div>
+            <div className="dialog-actions">
+              {dialog.type === 'confirm' && (
+                <button className="dialog-btn secondary" onClick={closeDialog}>Cancel</button>
+              )}
+              <button 
+                className="dialog-btn primary" 
+                onClick={() => {
+                  if (dialog.type === 'confirm' && dialog.onConfirm) {
+                    dialog.onConfirm();
+                  }
+                  closeDialog();
+                }}
+              >
+                {dialog.type === 'confirm' ? 'Confirm' : 'OK'}
+              </button>
             </div>
           </div>
         </div>

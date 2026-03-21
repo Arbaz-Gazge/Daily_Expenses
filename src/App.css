@@ -2389,6 +2389,56 @@ input:checked+.slider:before {
 .row-btn.edit:hover { background: var(--accent-color-light); color: #11998e; border-color: #11998e; }
 .row-btn.delete:hover { background: #fee2e2; color: #e53e3e; border-color: #e53e3e; }
 
+/* Custom Dialog Styles */
+.custom-dialog {
+  background: var(--bg-primary);
+  width: 85%;
+  max-width: 320px;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  text-align: center;
+}
+
+.dialog-content p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2rem;
+  line-height: 1.4;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.dialog-btn {
+  flex: 1;
+  padding: 0.85rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.dialog-btn.primary {
+  background: var(--accent-color);
+  color: #064e3b;
+}
+
+.dialog-btn.primary:active {
+  transform: scale(0.96);
+}
+
+.dialog-btn.secondary {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
 /* Splash Screen & Loading Bar */
 .app-loading-screen {
   position: fixed;
