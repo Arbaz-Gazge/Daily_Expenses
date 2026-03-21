@@ -1474,7 +1474,7 @@ function App() {
       )}
       {/* Category Manager Modal */}
       {isCategoryModalOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" style={{ zIndex: 3000 }}>
           <div className="modal category-modal">
             <div className="modal-header">
               <h3>Manage Categories</h3>
@@ -1514,7 +1514,7 @@ function App() {
 
       {/* Deposit Category Manager Modal */}
       {isDepositCategoryModalOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" style={{ zIndex: 3000 }}>
           <div className="modal category-modal">
             <div className="modal-header">
               <h3>Manage Deposit Categories</h3>
