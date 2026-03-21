@@ -393,6 +393,10 @@ function App() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const thirtyDaysAgoStr = thirtyDaysAgo.getFullYear() + '-' + String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0') + '-' + String(thirtyDaysAgo.getDate()).padStart(2, '0');
 
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoStr = sevenDaysAgo.getFullYear() + '-' + String(sevenDaysAgo.getMonth() + 1).padStart(2, '0') + '-' + String(sevenDaysAgo.getDate()).padStart(2, '0');
+
     const firstOfPrevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const lastOfPrevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
     const fpmStr = firstOfPrevMonth.getFullYear() + '-' + String(firstOfPrevMonth.getMonth() + 1).padStart(2, '0') + '-' + String(firstOfPrevMonth.getDate()).padStart(2, '0');
@@ -401,6 +405,7 @@ function App() {
     if (dateFilter === 'Today' && expense.date !== todayStr) return false;
     if (dateFilter === 'Yesterday' && expense.date !== yesterdayStr) return false;
     if (dateFilter === 'Tomorrow' && expense.date !== tomorrowStr) return false;
+    if (dateFilter === 'Last 7 Days' && (expense.date < sevenDaysAgoStr || expense.date > todayStr)) return false;
     if (dateFilter === 'Last 30 Days' && (expense.date < thirtyDaysAgoStr || expense.date > todayStr)) return false;
     if (dateFilter === 'Last Month' && (expense.date < fpmStr || expense.date > lpmStr)) return false;
 
@@ -946,7 +951,7 @@ function App() {
                               <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
                               <ul className="custom-dropdown popup">
                                 <div className="popup-header">Filter by Date</div>
-                                {['All', 'Today', 'Yesterday', 'Tomorrow', 'Last 30 Days', 'Last Month', 'Date Range'].map(range => (
+                                {['All', 'Today', 'Yesterday', 'Tomorrow', 'Last 7 Days', 'Last 30 Days', 'Last Month', 'Date Range'].map(range => (
                                   <li key={range} onClick={() => {
                                     setDateFilter(range);
                                     setActiveDropdown(null);
