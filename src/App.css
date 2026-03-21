@@ -369,7 +369,7 @@ body {
   max-height: 70vh;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
   border: 1px solid var(--border-color);
-  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: modalCenterPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .popup-dropdown-container {
@@ -406,7 +406,7 @@ body {
   z-index: 10;
 }
 
-@keyframes modalPop {
+@keyframes modalCenterPop {
   0% {
     transform: translate(-50%, -40%) scale(0.95);
     opacity: 0;
@@ -1723,7 +1723,7 @@ input:checked+.slider:before {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: modalPop 0.2s ease-out;
+  animation: pickerPop 0.2s ease-out;
 }
 
 .dark-mode .clock-picker-modal {
