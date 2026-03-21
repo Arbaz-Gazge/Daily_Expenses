@@ -148,6 +148,7 @@ function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullY, setPullY] = useState(0);
   const touchStart = useRef(0);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const defaultCategories = [
     "Food & Dining",
@@ -572,6 +573,23 @@ function App() {
 
     // Automatically switch to dashboard after adding
     handleViewSwitch('Dashboard');
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const bulkDeleteExpenses = () => {
+    if (selectedIds.length === 0) return;
+    showConfirm(`Are you sure you want to delete ${selectedIds.length} entries?`, () => {
+      const newExpenses = expenses.filter(exp => !selectedIds.includes(exp.id));
+      setExpenses(newExpenses);
+      setSelectedIds([]);
+      Preferences.set({ key: 'expenses', value: JSON.stringify(newExpenses) });
+      showAlert('Entries deleted successfully.');
+    });
   };
 
 
@@ -1353,7 +1371,20 @@ function App() {
                 </div>
 
                 <div className="dashboard-content" style={{ padding: '0 0.5rem' }}>
-
+                  {selectedIds.length > 0 && (
+                    <div className="selection-toolbar anim-slide-up" style={{ 
+                      position: 'sticky', top: 0, zIndex: 110, background: 'var(--accent-color)', 
+                      color: 'white', padding: '0.75rem 1rem', borderRadius: '12px', 
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      marginBottom: '1rem', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' 
+                    }}>
+                      <div style={{ fontWeight: 600 }}>{selectedIds.length} Selected</div>
+                      <div style={{ display: 'flex', gap: '0.75rem' }}>
+                        <button onClick={() => setSelectedIds([])} style={{ background: 'rgba(255, 255, 255, 0.2)', border: 'none', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '8px', fontWeight: 600 }}>Cancel</button>
+                        <button onClick={bulkDeleteExpenses} style={{ background: '#ef4444', border: 'none', color: 'white', padding: '0.4rem 0.8rem', borderRadius: '8px', fontWeight: 600 }}>Delete</button>
+                      </div>
+                    </div>
+                  )}
                   <div className="total-expense-card">
                     <h2>Total Expense</h2>
                     <div className="amount">₹{totalExpense.toFixed(2)}</div>
@@ -1546,28 +1577,47 @@ function App() {
                     <p className="no-expenses">No expenses found.</p>
                   ) : (
                     sortedExpenses.map(expense => (
-                      <div key={expense.id} className="expense-card">
-                        <div className="expense-info">
-                          <h3 className="expense-desc">{expense.description}</h3>
-                          <span className="expense-datetime">
-                            {expense.category && <span className="expense-category-badge">{expense.category}</span>}
-                            {expense.paymentMode && expense.paymentMode !== 'Not Specified' && (
-                              <span className="expense-payment-badge">{expense.paymentMode}</span>
-                            )}
-                            <div style={{ width: '100%', height: '4px' }}></div>
-                            {new Date(expense.date).toLocaleDateString('en-US', { weekday: 'long' })}, {expense.date.split('-').reverse().join('/')} • {formatTime(expense.time)}
-                            {expense.remark && (
-                              <div className="expense-remark">
-                                <span className="remark-icon">📝</span> {expense.remark}
-                              </div>
-                            )}
-                          </span>
-                        </div>
-                        <div className="expense-action" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                          <span className="expense-amount">₹{expense.amount.toFixed(2)}</span>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button type="button" onClick={() => handleEdit(expense)} style={{ background: '#cbd5e0', color: '#2d3748', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
-                            <button type="button" onClick={() => setDeleteId(expense.id)} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
+                      <div key={expense.id} className={`expense-card ${selectedIds.includes(expense.id) ? 'selected' : ''}`} onClick={() => {
+                        // If we are already in selection mode, clicking the card toggles it
+                        if (selectedIds.length > 0) {
+                          toggleSelection(expense.id);
+                        }
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
+                          <div 
+                            className={`selection-checkbox ${selectedIds.includes(expense.id) ? 'checked' : ''}`}
+                            onClick={(e) => { e.stopPropagation(); toggleSelection(expense.id); }}
+                          >
+                            {selectedIds.includes(expense.id) && '✓'}
+                          </div>
+                          
+                          <div className="expense-info" style={{ flex: 1 }}>
+                            <h3 className="expense-desc">{expense.description}</h3>
+                            <span className="expense-datetime">
+                              {expense.category && <span className="expense-category-badge">{expense.category}</span>}
+                              {expense.paymentMode && expense.paymentMode !== 'Not Specified' && (
+                                <span className="expense-payment-badge">{expense.paymentMode}</span>
+                              )}
+                              <div style={{ width: '100%', height: '4px' }}></div>
+                              {new Date(expense.date).toLocaleDateString('en-US', { weekday: 'long' })}, {expense.date.split('-').reverse().join('/')} • {formatTime(expense.time)}
+                              {expense.remark && (
+                                <div className="expense-remark">
+                                  <span className="remark-icon">📝</span> {expense.remark}
+                                </div>
+                              )}
+                            </span>
+                          </div>
+                          
+                          <div className="expense-action" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                            <span className="expense-amount">₹{expense.amount.toFixed(2)}</span>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              {!selectedIds.length && (
+                                <>
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); handleEdit(expense); }} style={{ background: '#cbd5e0', color: '#2d3748', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); setDeleteId(expense.id); }} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
