@@ -485,15 +485,15 @@ function App() {
     const currentY = e.touches[0].clientY;
     const pullDistance = Math.max(0, currentY - touchStart.current);
     
-    // Max pull height 150px
-    if (pullDistance < 150) {
+    // Max pull height 220px
+    if (pullDistance < 220) {
       setPullY(pullDistance);
     }
   };
 
   const handleTouchEnd = () => {
-    // Increase threshold to 120 for "extra" pull
-    if (pullY > 120) {
+    // Increase threshold to 180 for "long" pull
+    if (pullY > 180) {
       handleRefresh();
     } else {
       setPullY(0);
@@ -1347,7 +1347,9 @@ function App() {
                 <div className={`pull-to-refresh ${(pullY > 0 || isRefreshing) ? 'showing' : ''}`} 
                      style={{ transform: isRefreshing ? 'translateY(70px)' : `translateY(${Math.min(pullY, 70)}px)` }}>
                   <div className="refresh-icon"></div>
-                  <div className="refresh-text">{isRefreshing ? 'Refreshing...' : 'Pull to refresh'}</div>
+                  <div className="refresh-text">
+                    {isRefreshing ? 'Refreshing...' : (pullY < 180 ? 'Pull more...' : 'Ready to refresh!')}
+                  </div>
                 </div>
 
                 <div className="dashboard-content" style={{ padding: '0 0.5rem' }}>
@@ -1606,7 +1608,9 @@ function App() {
                 <div className={`pull-to-refresh ${(pullY > 0 || isRefreshing) ? 'showing' : ''}`} 
                      style={{ transform: isRefreshing ? 'translateY(70px)' : `translateY(${Math.min(pullY, 70)}px)` }}>
                   <div className="refresh-icon"></div>
-                  <div className="refresh-text">{isRefreshing ? 'Refreshing...' : 'Pull to refresh'}</div>
+                  <div className="refresh-text">
+                    {isRefreshing ? 'Refreshing...' : (pullY < 180 ? 'Pull more...' : 'Ready to refresh!')}
+                  </div>
                 </div>
 
                 <div className="banks-container" style={{ padding: '0 0.5rem' }}>
