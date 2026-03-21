@@ -485,14 +485,15 @@ function App() {
     const currentY = e.touches[0].clientY;
     const pullDistance = Math.max(0, currentY - touchStart.current);
     
-    // Max pull height 100px
-    if (pullDistance < 100) {
+    // Max pull height 150px
+    if (pullDistance < 150) {
       setPullY(pullDistance);
     }
   };
 
   const handleTouchEnd = () => {
-    if (pullY > 60) {
+    // Increase threshold to 120 for "extra" pull
+    if (pullY > 120) {
       handleRefresh();
     } else {
       setPullY(0);
@@ -573,22 +574,6 @@ function App() {
     handleViewSwitch('Dashboard');
   };
 
-  const openQuickAdd = () => {
-    const now = new Date();
-    const localDate = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
-    const localTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
-    
-    setAmount('');
-    setDescription('');
-    setCategory('');
-    setPaymentMode('Cash');
-    setRemark('');
-    setDate(localDate);
-    setTime(localTime);
-    setEditExpenseId(null);
-    setIsQuickAddMode(true);
-    setShowNumPad(true);
-  };
 
   const handleViewSwitch = (view: string) => {
     setIsLoading(true);
@@ -1366,13 +1351,6 @@ function App() {
                 </div>
 
                 <div className="dashboard-content" style={{ padding: '0 0.5rem' }}>
-                  <button
-                    type="button"
-                    className="dashboard-add-btn"
-                    onClick={openQuickAdd}
-                  >
-                    + Quick Add Entry
-                  </button>
 
                   <div className="total-expense-card">
                     <h2>Total Expense</h2>
