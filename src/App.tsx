@@ -1405,19 +1405,48 @@ function App() {
                               />
                             </div>
                             <div className="statement-filters-row">
-                                <select value={bankTypeFilter} onChange={e => setBankTypeFilter(e.target.value as any)}>
-                                  <option value="All">All Types</option>
-                                  <option value="in">Cash In</option>
-                                  <option value="out">Cash Out</option>
-                                </select>
-                                <select value={bankDateFilter} onChange={e => setBankDateFilter(e.target.value)}>
-                                  <option value="All">All Time</option>
-                                  <option value="Today">Today</option>
-                                  <option value="Yesterday">Yesterday</option>
-                                  <option value="Last 7 Days">Last 7 Days</option>
-                                  <option value="Last 30 Days">Last 30 Days</option>
-                                  <option value="Custom">Custom Range</option>
-                                </select>
+                              <div className="custom-select-wrapper" style={{ flex: 1 }}>
+                                <div 
+                                  className={`custom-select-trigger ${activeDropdown === 'bankTypeFilter' ? 'open' : ''}`}
+                                  onClick={() => setActiveDropdown('bankTypeFilter')}
+                                >
+                                  {bankTypeFilter === 'All' ? 'All Types' : bankTypeFilter === 'in' ? 'Cash In' : 'Cash Out'}
+                                </div>
+                                {activeDropdown === 'bankTypeFilter' && (
+                                  <div className="popup-dropdown-container">
+                                    <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                                    <ul className="custom-dropdown popup">
+                                      <div className="popup-header">Filter by Type</div>
+                                      <li className={bankTypeFilter === 'All' ? 'selected' : ''} onClick={() => { setBankTypeFilter('All'); setActiveDropdown(null); }}>All Types</li>
+                                      <li className={bankTypeFilter === 'in' ? 'selected' : ''} onClick={() => { setBankTypeFilter('in'); setActiveDropdown(null); }}>Cash In</li>
+                                      <li className={bankTypeFilter === 'out' ? 'selected' : ''} onClick={() => { setBankTypeFilter('out'); setActiveDropdown(null); }}>Cash Out</li>
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="custom-select-wrapper" style={{ flex: 1 }}>
+                                <div 
+                                  className={`custom-select-trigger ${activeDropdown === 'bankDateFilter' ? 'open' : ''}`}
+                                  onClick={() => setActiveDropdown('bankDateFilter')}
+                                >
+                                  {bankDateFilter === 'All' ? 'All Time' : bankDateFilter}
+                                </div>
+                                {activeDropdown === 'bankDateFilter' && (
+                                  <div className="popup-dropdown-container">
+                                    <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                                    <ul className="custom-dropdown popup">
+                                      <div className="popup-header">Filter by Date</div>
+                                      <li className={bankDateFilter === 'All' ? 'selected' : ''} onClick={() => { setBankDateFilter('All'); setActiveDropdown(null); }}>All Time</li>
+                                      <li className={bankDateFilter === 'Today' ? 'selected' : ''} onClick={() => { setBankDateFilter('Today'); setActiveDropdown(null); }}>Today</li>
+                                      <li className={bankDateFilter === 'Yesterday' ? 'selected' : ''} onClick={() => { setBankDateFilter('Yesterday'); setActiveDropdown(null); }}>Yesterday</li>
+                                      <li className={bankDateFilter === 'Last 7 Days' ? 'selected' : ''} onClick={() => { setBankDateFilter('Last 7 Days'); setActiveDropdown(null); }}>Last 7 Days</li>
+                                      <li className={bankDateFilter === 'Last 30 Days' ? 'selected' : ''} onClick={() => { setBankDateFilter('Last 30 Days'); setActiveDropdown(null); }}>Last 30 Days</li>
+                                      <li className={bankDateFilter === 'Custom' ? 'selected' : ''} onClick={() => { setBankDateFilter('Custom'); setActiveDropdown(null); }}>Custom Range</li>
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                             {bankDateFilter === 'Custom' && (
                               <div className="statement-filters-row anim-fade-in" style={{ marginTop: '0.5rem' }}>
