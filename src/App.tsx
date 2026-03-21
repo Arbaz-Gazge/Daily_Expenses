@@ -71,7 +71,10 @@ function App() {
   const [calendarMonth, setCalendarMonth] = useState(new Date()); // Month currently viewed in calendar
 
   // Settings
-  const [settings, setSettings] = useState<Settings>({ theme: 'light', timeFormat: '12h' });
+  const [settings, setSettings] = useState<Settings>({ 
+    theme: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light',
+    timeFormat: '12h' 
+  });
 
   // Backup & Restore
   // edit mode

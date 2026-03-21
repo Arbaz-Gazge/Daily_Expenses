@@ -2342,13 +2342,13 @@ input:checked+.slider:before {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: var(--bg-primary);
+  background: #0f172a; /* Slate 900 - professional dark background to prevent flashing */
   z-index: 9999;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  color: var(--text-primary);
+  color: #f8fafc; /* Slate 50 - high contrast text */
 }
 
 .splash-logo {
