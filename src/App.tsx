@@ -1554,55 +1554,45 @@ function App() {
                   className="modal-input"
                 />
               </div>
-              <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
+              <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem', position: 'relative' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <label>Category</label>
                   <button type="button" onClick={() => setIsDepositCategoryModalOpen(true)} className="manage-btn-small">Manage</button>
                 </div>
-                <div className="custom-select-container">
-                    <div 
-                      className={`custom-select-trigger ${activeDropdown === 'depositCat' ? 'open' : ''}`}
-                      onClick={() => setActiveDropdown(activeDropdown === 'depositCat' ? null : 'depositCat')}
-                    >
-                      {depositCategory || 'Select Category'}
-                      <span className="arrow">▼</span>
-                    </div>
-                    {activeDropdown === 'depositCat' && (
-                      <div className="custom-options active">
-                        <div className="search-box-container">
-                          <input 
-                            type="text" 
-                            className="search-box" 
-                            placeholder="Search categories..." 
-                            value={catSearch}
-                            onChange={(e) => setCatSearch(e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            autoFocus
-                          />
-                        </div>
-                        <div className="options-list">
-                          {depositCategories
-                            .filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase()))
-                            .map(cat => (
-                              <div 
-                                key={cat} 
-                                className="option" 
-                                onClick={() => {
-                                  setDepositCategory(cat);
-                                  setActiveDropdown(null);
-                                  setCatSearch('');
-                                }}
-                              >
-                                {cat}
-                              </div>
-                            ))}
-                          {depositCategories.filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase())).length === 0 && (
-                            <div className="no-options">No matches found</div>
-                          )}
-                        </div>
-                      </div>
+                <input
+                  type="text"
+                  value={depositCategory}
+                  onChange={(e) => {
+                    setDepositCategory(e.target.value);
+                    setActiveDropdown('depositCat');
+                  }}
+                  onFocus={() => setActiveDropdown('depositCat')}
+                  onBlur={() => {
+                    setTimeout(() => setActiveDropdown(null), 200);
+                  }}
+                  placeholder="Select or type a category"
+                  className="modal-input"
+                />
+                {activeDropdown === 'depositCat' && (
+                  <ul className="custom-dropdown" style={{ top: '100%', left: 0, width: '100%', zIndex: 100 }}>
+                    {depositCategories
+                      .filter(cat => cat.toLowerCase().includes(depositCategory.toLowerCase()))
+                      .map(cat => (
+                        <li
+                          key={cat}
+                          onClick={() => {
+                            setDepositCategory(cat);
+                            setActiveDropdown(null);
+                          }}
+                        >
+                          {cat}
+                        </li>
+                      ))}
+                    {depositCategories.filter(cat => cat.toLowerCase().includes(depositCategory.toLowerCase())).length === 0 && (
+                      <li style={{ color: 'var(--text-tertiary)', padding: '0.75rem 1rem', fontStyle: 'italic', cursor: 'default' }}>No match found</li>
                     )}
-                  </div>
+                  </ul>
+                )}
               </div>
               <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
                 <button type="button" className="modal-btn cancel" onClick={() => setShowDepositModal(false)}>Cancel</button>
