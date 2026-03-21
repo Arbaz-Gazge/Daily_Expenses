@@ -93,7 +93,6 @@ function App() {
   const [depositCategory, setDepositCategory] = useState('');
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
   const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([]);
-  const [activeStatementBankId, setActiveStatementBankId] = useState<string | null>(null);
 
   const defaultCategories = [
     "Food & Dining",
@@ -111,6 +110,13 @@ function App() {
   const [newCategory, setNewCategory] = useState('');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [showNumPad, setShowNumPad] = useState(false);
+
+  const defaultDepositCategories = ["Salary", "Investment", "Gift", "Refund", "Bank Transfer", "Other"];
+  const [depositCategories, setDepositCategories] = useState<string[]>([]);
+  const [isDepositCategoryModalOpen, setIsDepositCategoryModalOpen] = useState(false);
+  const [editingDepositCategoryIdx, setEditingDepositCategoryIdx] = useState<number | null>(null);
+  const [newDepositCategory, setNewDepositCategory] = useState('');
+  const [viewingBankId, setViewingBankId] = useState<string | null>(null);
 
   const evaluateExpression = (expr: string) => {
     try {
@@ -199,6 +205,13 @@ function App() {
       const savedBankTrx = await Preferences.get({ key: 'bankTransactions' });
       if (savedBankTrx.value) setBankTransactions(JSON.parse(savedBankTrx.value));
 
+      const savedDepositCats = await Preferences.get({ key: 'depositCategories' });
+      if (savedDepositCats.value) {
+        setDepositCategories(JSON.parse(savedDepositCats.value));
+      } else {
+        setDepositCategories(defaultDepositCategories);
+      }
+
       setDataLoaded(true);
     };
     loadData();
@@ -230,6 +243,12 @@ function App() {
       Preferences.set({ key: 'bankTransactions', value: JSON.stringify(bankTransactions) });
     }
   }, [bankTransactions, dataLoaded]);
+
+  useEffect(() => {
+    if (dataLoaded && depositCategories.length > 0) {
+      Preferences.set({ key: 'depositCategories', value: JSON.stringify(depositCategories) });
+    }
+  }, [depositCategories, dataLoaded]);
 
   useEffect(() => {
     if (!dataLoaded) return; // Prevent overwriting storage with defaults on first mount
@@ -491,6 +510,41 @@ function App() {
     setNewCategory(categories[index]);
   };
 
+  const startEditDepositCategory = (idx: number) => {
+    setEditingDepositCategoryIdx(idx);
+    setNewDepositCategory(depositCategories[idx]);
+  };
+
+  const addDepositCategory = () => {
+    if (newDepositCategory.trim()) {
+      const trimmedName = newDepositCategory.trim();
+      if (editingDepositCategoryIdx !== null) {
+        const oldName = depositCategories[editingDepositCategoryIdx];
+        const updated = [...depositCategories];
+        updated[editingDepositCategoryIdx] = trimmedName;
+        setDepositCategories(updated);
+
+        // Update existing transactions
+        setBankTransactions(prev => prev.map(t => 
+          t.type === 'in' && t.category === oldName ? { ...t, category: trimmedName } : t
+        ));
+        
+        if (depositCategory === oldName) setDepositCategory(trimmedName);
+        setEditingDepositCategoryIdx(null);
+      } else {
+        if (!depositCategories.includes(trimmedName)) {
+          setDepositCategories([...depositCategories, trimmedName]);
+        }
+      }
+      setNewDepositCategory('');
+    }
+  };
+
+  const deleteDepositCategory = (cat: string) => {
+    setDepositCategories(depositCategories.filter(c => c !== cat));
+    if (depositCategory === cat) setDepositCategory('');
+  };
+
   const filteredExpenses = expenses.filter(expense => {
     if (!categoryFilters.includes('All')) {
       if (!categoryFilters.includes(expense.category || 'Uncategorized')) return false;
@@ -642,7 +696,7 @@ function App() {
   const totalExpense = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   const handleBackup = async () => {
-    const dataStr = JSON.stringify({ expenses, categories, settings, banks, bankTransactions }, null, 2);
+    const dataStr = JSON.stringify({ expenses, categories, settings, banks, bankTransactions, depositCategories }, null, 2);
     const fileName = `expense_backup_${new Date().toISOString().split('T')[0]}.json`;
 
     if (Capacitor.isNativePlatform()) {
@@ -688,6 +742,7 @@ function App() {
         if (data.settings) setSettings(data.settings);
         if (data.banks) setBanks(data.banks);
         if (data.bankTransactions) setBankTransactions(data.bankTransactions);
+        if (data.depositCategories) setDepositCategories(data.depositCategories);
         alert('Data restored successfully!');
       } catch (err) {
         alert('Invalid backup file format.');
@@ -1204,61 +1259,91 @@ function App() {
                     <button className="add-bank-btn" style={{ marginTop: '1rem' }} onClick={() => setShowBankModal(true)}>Create Your First Account</button>
                   </div>
                 ) : (
-                  <div className="banks-grid">
+                  <div className="banks-list">
                     {banks.map(bank => (
-                      <div key={bank.id} className="bank-card shadow-sm">
-                        <div className="bank-card-header">
+                      <div key={bank.id} className="bank-list-item shadow-sm" onClick={() => { setViewingBankId(bank.id); setCurrentView('Bank Detail'); }}>
+                        <div className="bank-info">
                           <h3>{bank.name}</h3>
-                          <button className="delete-btn-bank" onClick={() => deleteBank(bank.id)}>✕</button>
+                          <span className="bank-id-tag">Account ID: {bank.id.substring(0, 8)}</span>
                         </div>
-                        <div className="bank-balance">
-                          <span>Current Balance</span>
+                        <div className="bank-item-balance">
+                          <div className="label">Balance</div>
                           <div className="amount">₹{bank.balance.toFixed(2)}</div>
                         </div>
-                        <div className="bank-actions">
+                        <div className="bank-chevron">›</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {currentView === 'Bank Detail' && viewingBankId && (
+              <div className="bank-detail-view anim-fade-in">
+                {(() => {
+                  const bank = banks.find(b => b.id === viewingBankId);
+                  if (!bank) return null;
+                  return (
+                    <>
+                      <div className="detail-header">
+                        <button className="back-btn-simple" onClick={() => setCurrentView('Banks')}>← Back to List</button>
+                        <button className="delete-btn-bank" onClick={() => { deleteBank(bank.id); setCurrentView('Banks'); }}>✕ Delete Bank</button>
+                      </div>
+
+                      <div className="bank-hero-card">
+                        <div className="hero-content">
+                          <h1>{bank.name}</h1>
+                          <div className="hero-balance">
+                            <span className="label">Current Balance</span>
+                            <div className="amount">₹{bank.balance.toFixed(2)}</div>
+                          </div>
+                        </div>
+                        <div className="hero-actions">
                           <button 
-                            className="cash-in-btn"
+                            className="cash-in-btn large"
                             onClick={() => {
                               setSelectedBankId(bank.id);
                               setShowDepositModal(true);
                             }}
                           >
-                            + Cash In
-                          </button>
-                          <button 
-                            className="statement-toggle-btn"
-                            onClick={() => setActiveStatementBankId(activeStatementBankId === bank.id ? null : bank.id)}
-                          >
-                            {activeStatementBankId === bank.id ? 'Hide Statement' : 'Statement'}
+                            + Add Money (Cash In)
                           </button>
                         </div>
-
-                        {activeStatementBankId === bank.id && (
-                          <div className="bank-statement anim-fade-in">
-                            <h4 className="statement-header">Recent Transactions</h4>
-                            <div className="statement-list">
-                              {bankTransactions.filter(t => t.bankId === bank.id).length === 0 ? (
-                                <p className="no-trx">No transactions yet.</p>
-                              ) : (
-                                bankTransactions.filter(t => t.bankId === bank.id).map(trx => (
-                                  <div key={trx.id} className="statement-item">
-                                    <div className="trx-main">
-                                      <div className="trx-desc">{trx.description}</div>
-                                      <div className="trx-meta">{trx.date.split('-').reverse().join('/')} • {formatTime(trx.time)}</div>
-                                    </div>
-                                    <div className={`trx-amount ${trx.type}`}>
-                                      {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
-                                    </div>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
+
+                      <div className="detail-statement-section">
+                        <h2 className="section-title">Account Statement</h2>
+                        <div className="statement-full-list">
+                          {bankTransactions.filter(t => t.bankId === bank.id).length === 0 ? (
+                            <div className="empty-statement">
+                              <p>No transaction records found for this account.</p>
+                            </div>
+                          ) : (
+                            bankTransactions.filter(t => t.bankId === bank.id).map(trx => (
+                              <div key={trx.id} className={`statement-row ${trx.type}`}>
+                                <div className="row-date">
+                                  <span className="day">{trx.date.split('-')[2]}</span>
+                                  <span className="month">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
+                                </div>
+                                <div className="row-main">
+                                  <div className="row-desc">{trx.description}</div>
+                                  <div className="row-meta">
+                                    <span className={`type-badge ${trx.type}`}>{trx.type === 'in' ? 'Cash In' : 'Cash Out'}</span>
+                                    {trx.category && <span className="cat-badge">{trx.category}</span>}
+                                    <span className="time">{formatTime(trx.time)}</span>
+                                  </div>
+                                </div>
+                                <div className={`row-amount ${trx.type}`}>
+                                  {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
             {currentView === 'About Us' && (
@@ -1335,13 +1420,63 @@ function App() {
               )}
             </div>
 
-            <div className="category-list-scroll">
+            <div className="category-list">
               {categories.map((cat, idx) => (
                 <div key={cat} className="category-list-item">
                   <span className="cat-name">{cat}</span>
                   <div className="cat-actions">
                     <button type="button" className="cat-btn edit" onClick={() => startEditCategory(idx)}>Edit</button>
                     <button type="button" className="cat-btn delete" onClick={() => deleteCategory(cat)}>Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deposit Category Manager Modal */}
+      {isDepositCategoryModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal category-modal">
+            <div className="modal-header">
+              <h3>Manage Deposit Categories</h3>
+              <button 
+                className="close-btn" 
+                style={{ position: 'static', color: 'var(--text-primary)' }} 
+                onClick={() => { 
+                  setIsDepositCategoryModalOpen(false); 
+                  setEditingDepositCategoryIdx(null); 
+                  setNewDepositCategory(''); 
+                }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="category-input-group">
+              <input
+                type="text"
+                value={newDepositCategory}
+                onChange={e => setNewDepositCategory(e.target.value)}
+                placeholder={editingDepositCategoryIdx !== null ? "Edit category name" : "New category name"}
+                className="category-modal-input"
+              />
+              <button type="button" onClick={addDepositCategory} className="modal-action-btn primary">
+                {editingDepositCategoryIdx !== null ? 'Update' : 'Add'}
+              </button>
+              {editingDepositCategoryIdx !== null && (
+                <button type="button" onClick={() => { setEditingDepositCategoryIdx(null); setNewDepositCategory(''); }} className="modal-action-btn secondary">Cancel</button>
+              )}
+            </div>
+
+            <div className="category-list">
+              {depositCategories.map((cat, idx) => (
+                <div key={cat} className="category-list-item">
+                  <span className="cat-name">{cat}</span>
+                  <div className="cat-actions">
+                    <button type="button" className="cat-btn edit" onClick={() => startEditDepositCategory(idx)}>Edit</button>
+                    <button type="button" className="cat-btn delete" onClick={() => deleteDepositCategory(cat)}>Delete</button>
                   </div>
                 </div>
               ))}
@@ -1420,14 +1555,54 @@ function App() {
                 />
               </div>
               <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
-                <label>Category (Optional)</label>
-                <input 
-                  type="text" 
-                  value={depositCategory} 
-                  onChange={e => setDepositCategory(e.target.value)} 
-                  placeholder="e.g. Income, Savings" 
-                  className="modal-input"
-                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label>Category</label>
+                  <button type="button" onClick={() => setIsDepositCategoryModalOpen(true)} className="manage-btn-small">Manage</button>
+                </div>
+                <div className="custom-select-container">
+                    <div 
+                      className={`custom-select-trigger ${activeDropdown === 'depositCat' ? 'open' : ''}`}
+                      onClick={() => setActiveDropdown(activeDropdown === 'depositCat' ? null : 'depositCat')}
+                    >
+                      {depositCategory || 'Select Category'}
+                      <span className="arrow">▼</span>
+                    </div>
+                    {activeDropdown === 'depositCat' && (
+                      <div className="custom-options active">
+                        <div className="search-box-container">
+                          <input 
+                            type="text" 
+                            className="search-box" 
+                            placeholder="Search categories..." 
+                            value={catSearch}
+                            onChange={(e) => setCatSearch(e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                          />
+                        </div>
+                        <div className="options-list">
+                          {depositCategories
+                            .filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase()))
+                            .map(cat => (
+                              <div 
+                                key={cat} 
+                                className="option" 
+                                onClick={() => {
+                                  setDepositCategory(cat);
+                                  setActiveDropdown(null);
+                                  setCatSearch('');
+                                }}
+                              >
+                                {cat}
+                              </div>
+                            ))}
+                          {depositCategories.filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase())).length === 0 && (
+                            <div className="no-options">No matches found</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
               </div>
               <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
                 <button type="button" className="modal-btn cancel" onClick={() => setShowDepositModal(false)}>Cancel</button>
