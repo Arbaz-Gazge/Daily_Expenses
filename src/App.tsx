@@ -1360,7 +1360,7 @@ function App() {
                 onTouchEnd={handleTouchEnd}
               >
                 <div className={`pull-to-refresh ${(pullY > 0 || isRefreshing) ? 'showing' : ''}`} 
-                     style={{ transform: isRefreshing ? 'translateY(60px)' : `translateY(${Math.min(pullY, 60)}px)` }}>
+                     style={{ transform: isRefreshing ? 'translateY(70px)' : `translateY(${Math.min(pullY, 70)}px)` }}>
                   <div className="refresh-icon"></div>
                   <div className="refresh-text">{isRefreshing ? 'Refreshing...' : 'Pull to refresh'}</div>
                 </div>
@@ -1626,7 +1626,7 @@ function App() {
                 onTouchEnd={handleTouchEnd}
               >
                 <div className={`pull-to-refresh ${(pullY > 0 || isRefreshing) ? 'showing' : ''}`} 
-                     style={{ transform: isRefreshing ? 'translateY(60px)' : `translateY(${Math.min(pullY, 60)}px)` }}>
+                     style={{ transform: isRefreshing ? 'translateY(70px)' : `translateY(${Math.min(pullY, 70)}px)` }}>
                   <div className="refresh-icon"></div>
                   <div className="refresh-text">{isRefreshing ? 'Refreshing...' : 'Pull to refresh'}</div>
                 </div>

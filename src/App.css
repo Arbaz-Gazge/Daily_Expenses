@@ -2565,15 +2565,19 @@ input:checked+.slider:before {
 
 .pull-to-refresh {
   position: absolute;
-  top: -60px;
+  top: -70px; /* Hide further up */
   left: 0;
   right: 0;
   height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s;
-  z-index: 1000;
+  z-index: 2000;
+  pointer-events: none;
+  background: var(--bg-primary); /* Use theme background */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Add elevation */
+  border-bottom: 1px solid var(--border-color);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pull-to-refresh.showing {
