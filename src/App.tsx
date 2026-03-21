@@ -128,7 +128,6 @@ function App() {
 
   // Auto Pay States
   const [autoPays, setAutoPays] = useState<AutoPay[]>([]);
-  const [showAutoPayModal, setShowAutoPayModal] = useState(false);
   const [autoPayName, setAutoPayName] = useState('');
   const [autoPayAmount, setAutoPayAmount] = useState('');
   const [autoPayFreqValue, setAutoPayFreqValue] = useState('1');
@@ -146,6 +145,9 @@ function App() {
   const [bankStartDate, setBankStartDate] = useState('');
   const [bankEndDate, setBankEndDate] = useState('');
   const [triggerCheck, setTriggerCheck] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullY, setPullY] = useState(0);
+  const touchStart = useRef(0);
 
   const defaultCategories = [
     "Food & Dining",
@@ -456,6 +458,48 @@ function App() {
     }
   }, [activeDropdown]);
 
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    // Explicitly check for Auto Pays
+    checkAndExecuteAutoPays();
+    // Simulate some sync time
+    setTimeout(() => {
+      setIsRefreshing(false);
+      setPullY(0);
+      setTriggerCheck(prev => prev + 1);
+    }, 1000);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Only detect pull-to-refresh if we're at the top of the scroll
+    const container = e.currentTarget;
+    if (container.scrollTop === 0) {
+      touchStart.current = e.touches[0].clientY;
+    } else {
+      touchStart.current = 0;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStart.current === 0 || isRefreshing) return;
+    const currentY = e.touches[0].clientY;
+    const pullDistance = Math.max(0, currentY - touchStart.current);
+    
+    // Max pull height 100px
+    if (pullDistance < 100) {
+      setPullY(pullDistance);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (pullY > 60) {
+      handleRefresh();
+    } else {
+      setPullY(0);
+    }
+    touchStart.current = 0;
+  };
+
   const addExpense = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || !description || !date || !time) return;
@@ -692,7 +736,7 @@ function App() {
     setAutoPayStartDate(ap.startDate);
     setAutoPayBankId(ap.bankId);
     setEditingAutoPayId(ap.id);
-    setShowAutoPayModal(true);
+    setCurrentView('Auto Pay Setup');
   };
 
   const addAutoPay = (e: React.FormEvent) => {
@@ -719,7 +763,7 @@ function App() {
     } else {
       setAutoPays(prev => [...prev, newAP]);
     }
-    setShowAutoPayModal(false);
+    setCurrentView('Auto Pay');
     resetAutoPayForm();
     setTriggerCheck(prev => prev + 1);
   };
@@ -1309,62 +1353,74 @@ function App() {
             )}
 
             {currentView === 'Dashboard' && (
-              <>
-                <button
-                  type="button"
-                  className="dashboard-add-btn"
-                  onClick={openQuickAdd}
-                >
-                  + Quick Add Entry
-                </button>
-
-                <div className="total-expense-card">
-                  <h2>Total Expense</h2>
-                  <div className="amount">₹{totalExpense.toFixed(2)}</div>
+              <div 
+                className="refresh-container anim-fade-in"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
+                <div className={`pull-to-refresh ${(pullY > 0 || isRefreshing) ? 'showing' : ''}`} 
+                     style={{ transform: isRefreshing ? 'translateY(60px)' : `translateY(${Math.min(pullY, 60)}px)` }}>
+                  <div className="refresh-icon"></div>
+                  <div className="refresh-text">{isRefreshing ? 'Refreshing...' : 'Pull to refresh'}</div>
                 </div>
 
-                <div className="expenses-list">
-                  <div className="filters-container">
-                    <div className="filters-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <h3 className="filters-title" style={{ margin: 0 }}>Filters</h3>
-                      <button
-                        type="button"
-                        className={`search-toggle-btn ${showSearch ? 'active' : ''}`}
-                        onClick={() => {
-                          setShowSearch(!showSearch);
-                          if (showSearch) setSearchQuery('');
-                        }}
-                      >
-                        {showSearch ? '✕ Close' : '🔍 Search'}
-                      </button>
-                    </div>
+                <div className="dashboard-content" style={{ padding: '0 0.5rem' }}>
+                  <button
+                    type="button"
+                    className="dashboard-add-btn"
+                    onClick={openQuickAdd}
+                  >
+                    + Quick Add Entry
+                  </button>
 
-                    {showSearch && (
-                      <div className="search-bar-container anim-fade-in">
-                        <input
-                          type="text"
-                          className="search-input"
-                          placeholder="Search expenses..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          autoFocus
-                        />
+                  <div className="total-expense-card">
+                    <h2>Total Expense</h2>
+                    <div className="amount">₹{totalExpense.toFixed(2)}</div>
+                  </div>
+
+                  <div className="expenses-list">
+                    <div className="filters-container">
+                      <div className="filters-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 className="filters-title" style={{ margin: 0 }}>Filters</h3>
+                        <button
+                          type="button"
+                          className={`search-toggle-btn ${showSearch ? 'active' : ''}`}
+                          onClick={() => {
+                            setShowSearch(!showSearch);
+                            if (showSearch) setSearchQuery('');
+                          }}
+                        >
+                          {showSearch ? '✕ Close' : '🔍 Search'}
+                        </button>
                       </div>
-                    )}
-                    <div className="filters-grid">
-                          <div className="filter-item">
-                            <label>Categories</label>
-                            <div className="custom-select-wrapper">
-                              <div
-                                className={`custom-select-trigger filter-select ${activeDropdown === 'catFilter' ? 'open' : ''}`}
-                                onClick={() => setActiveDropdown('catFilter')}
-                              >
-                                {categoryFilters.includes('All') 
-                                  ? 'All Categories' 
-                                  : categoryFilters.length === 1 
-                                    ? categoryFilters[0] 
-                                    : `${categoryFilters.length} Categories`}
-                              </div>
+
+                      {showSearch && (
+                        <div className="search-bar-container anim-fade-in">
+                          <input
+                            type="text"
+                            className="search-input"
+                            placeholder="Search expenses..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            autoFocus
+                          />
+                        </div>
+                      )}
+                      <div className="filters-grid">
+                            <div className="filter-item">
+                              <label>Categories</label>
+                              <div className="custom-select-wrapper">
+                                <div
+                                  className={`custom-select-trigger filter-select ${activeDropdown === 'catFilter' ? 'open' : ''}`}
+                                  onClick={() => setActiveDropdown('catFilter')}
+                                >
+                                  {categoryFilters.includes('All') 
+                                    ? 'All Categories' 
+                                    : categoryFilters.length === 1 
+                                      ? categoryFilters[0] 
+                                      : `${categoryFilters.length} Categories`}
+                                </div>
                               {activeDropdown === 'catFilter' && (
                                 <div className="popup-dropdown-container">
                                   <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
@@ -1538,8 +1594,9 @@ function App() {
                     ))
                   )}
                 </div>
-              </>
-            )}
+              </div>
+            </div>
+          )}
 
             {currentView === 'Backup & Restore' && (
               <div className="backup-container">
@@ -1562,7 +1619,19 @@ function App() {
               </div>
             )}
             {currentView === 'Banks' && (
-              <div className="banks-container anim-fade-in">
+              <div 
+                className="refresh-container anim-fade-in"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
+                <div className={`pull-to-refresh ${(pullY > 0 || isRefreshing) ? 'showing' : ''}`} 
+                     style={{ transform: isRefreshing ? 'translateY(60px)' : `translateY(${Math.min(pullY, 60)}px)` }}>
+                  <div className="refresh-icon"></div>
+                  <div className="refresh-text">{isRefreshing ? 'Refreshing...' : 'Pull to refresh'}</div>
+                </div>
+
+                <div className="banks-container" style={{ padding: '0 0.5rem' }}>
                 <div className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h2 style={{ margin: 0 }}>Banks & Accounts</h2>
                   <button className="add-bank-btn" onClick={() => setShowBankModal(true)}>+ Add Bank</button>
@@ -1591,7 +1660,8 @@ function App() {
                   </div>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
             {currentView === 'Bank Detail' && viewingBankId && (
               <div className="bank-detail-view anim-fade-in">
@@ -1793,13 +1863,13 @@ function App() {
               <div className="autopay-view anim-fade-in">
                 <div className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                   <h2 style={{ margin: 0 }}>Auto Pay (SIP)</h2>
-                  <button className="add-bank-btn" onClick={() => { resetAutoPayForm(); setShowAutoPayModal(true); }}>+ Set Auto Pay</button>
+                  <button className="add-bank-btn" onClick={() => { resetAutoPayForm(); setCurrentView('Auto Pay Setup'); }}>+ Set Auto Pay</button>
                 </div>
                 
                 {autoPays.length === 0 ? (
                   <div className="empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-secondary)', borderRadius: '20px', border: '1px dashed var(--border-color)' }}>
                     <p style={{ color: 'var(--text-tertiary)', fontSize: '1.1rem' }}>No automated payments scheduled.</p>
-                    <button className="add-bank-btn" style={{ marginTop: '1rem' }} onClick={() => { resetAutoPayForm(); setShowAutoPayModal(true); }}>Create Your First Auto Pay</button>
+                    <button className="add-bank-btn" style={{ marginTop: '1rem' }} onClick={() => { resetAutoPayForm(); setCurrentView('Auto Pay Setup'); }}>Create Your First Auto Pay</button>
                   </div>
                 ) : (
                   <div className="autopay-list">
@@ -1828,6 +1898,141 @@ function App() {
                     })}
                   </div>
                 )}
+              </div>
+            )}
+
+            {currentView === 'Auto Pay Setup' && (
+              <div className="autopay-setup-view anim-slide-up">
+                <div className="view-header" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <button className="back-btn" onClick={() => setCurrentView('Auto Pay')}>←</button>
+                  <h2 style={{ margin: 0 }}>{editingAutoPayId ? 'Edit Auto Pay' : 'Set Auto Pay'}</h2>
+                </div>
+
+                <form className="modal-form" onSubmit={addAutoPay}>
+                  <div className="ap-setup-section">
+                    <div className="modal-section-title">General Details</div>
+                      <div className="form-group">
+                        <label>📝 Auto Pay Name</label>
+                        <input 
+                          type="text" 
+                          className="modal-input" 
+                          placeholder="e.g. House Rent, Monthly Gym" 
+                          value={autoPayName} 
+                          onChange={e => setAutoPayName(e.target.value)} 
+                          required 
+                        />
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label>💰 Amount</label>
+                          <div className="modal-input-container">
+                            <input 
+                              type="number" 
+                              className="modal-input" 
+                              placeholder="0.00" 
+                              value={autoPayAmount} 
+                              onChange={e => setAutoPayAmount(e.target.value)} 
+                              required 
+                            />
+                          </div>
+                        </div>
+                        <div className="form-group" style={{ flex: 1.2 }}>
+                          <label>🔄 Frequency</label>
+                          <div className="combined-freq-input">
+                            <input 
+                              type="number" 
+                              className="freq-number-input" 
+                              value={autoPayFreqValue} 
+                              onChange={e => setAutoPayFreqValue(e.target.value)} 
+                              min="1"
+                              required 
+                            />
+                            <div className={`custom-select-trigger freq-unit-selector ${activeDropdown === 'apFreqUnit' ? 'open' : ''}`} onClick={() => setActiveDropdown('apFreqUnit')}>
+                              per {autoPayFreqUnit?.toLowerCase()}
+                            </div>
+                          </div>
+                          {activeDropdown === 'apFreqUnit' && (
+                            <div className="popup-dropdown-container">
+                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                              <ul className="custom-dropdown popup">
+                                <li onClick={() => { setAutoPayFreqUnit('Minute'); setActiveDropdown(null); }}>per minute</li>
+                                <li onClick={() => { setAutoPayFreqUnit('Hour'); setActiveDropdown(null); }}>per hour</li>
+                                <li onClick={() => { setAutoPayFreqUnit('Day'); setActiveDropdown(null); }}>per day</li>
+                                <li onClick={() => { setAutoPayFreqUnit('Month'); setActiveDropdown(null); }}>per month</li>
+                                <li onClick={() => { setAutoPayFreqUnit('Year'); setActiveDropdown(null); }}>per year</li>
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                  </div>
+
+                  <div className="ap-setup-section">
+                    <div className="modal-section-title">Schedule & Account</div>
+                      <div className="form-group">
+                        <label>📂 Category</label>
+                        <div className="custom-select-wrapper">
+                          <div className={`custom-select-trigger ${activeDropdown === 'apCat' ? 'open' : ''}`} onClick={() => setActiveDropdown('apCat')}>
+                            {autoPayCat || 'Select Category'}
+                          </div>
+                          {activeDropdown === 'apCat' && (
+                            <div className="popup-dropdown-container">
+                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                              <ul className="custom-dropdown popup">
+                                <div className="popup-header">Select Category</div>
+                                {categories.map(cat => (
+                                  <li key={cat} onClick={() => { setAutoPayCat(cat); setActiveDropdown(null); }}>{cat}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="form-row">
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label>⏰ Time</label>
+                          <input 
+                            type="time" 
+                            className="modal-input" 
+                            value={autoPayTime} 
+                            onChange={e => setAutoPayTime(e.target.value)} 
+                            required 
+                          />
+                        </div>
+                        <div className="form-group" style={{ flex: 1 }}>
+                          <label>📅 Start Date</label>
+                          <input 
+                            type="date" 
+                            className="modal-input" 
+                            value={autoPayStartDate} 
+                            onChange={e => setAutoPayStartDate(e.target.value)} 
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label>🏦 Link Bank/Account</label>
+                        <div className="custom-select-wrapper">
+                          <div className={`custom-select-trigger ${activeDropdown === 'apBank' ? 'open' : ''}`} onClick={() => setActiveDropdown('apBank')}>
+                            {banks.find(b => b.id === autoPayBankId)?.name || 'Select Account'}
+                          </div>
+                          {activeDropdown === 'apBank' && (
+                            <div className="popup-dropdown-container">
+                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                              <ul className="custom-dropdown popup">
+                                <div className="popup-header">Link Account</div>
+                                {banks.map(bank => (
+                                  <li key={bank.id} onClick={() => { setAutoPayBankId(bank.id); setActiveDropdown(null); }}>
+                                    {bank.name} (₹{bank.balance.toFixed(2)})
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                  </div>
+                  <button type="submit" className="submit-btn" style={{ padding: '1.25rem' }}>{editingAutoPayId ? 'Update' : 'Schedule'} Auto Pay</button>
+                </form>
               </div>
             )}
             {currentView === 'About Us' && (
@@ -2418,136 +2623,7 @@ function App() {
         </div>
       )}
 
-      {/* Auto Pay Modal */}
-      {showAutoPayModal && (
-        <div className="modal-overlay" style={{ zIndex: 3000 }}>
-          <div className="modal-content anim-slide-up">
-             <div className="modal-header">
-                <h2>{editingAutoPayId ? 'Edit Auto Pay' : 'Set Auto Pay'}</h2>
-                <button className="close-btn" onClick={() => setShowAutoPayModal(false)}>×</button>
-             </div>
-             <form className="modal-form" onSubmit={addAutoPay}>
-                <div className="form-group">
-                  <label>Auto Pay Name</label>
-                  <input 
-                    type="text" 
-                    className="modal-input" 
-                    placeholder="e.g. House Rent, Monthly Gym" 
-                    value={autoPayName} 
-                    onChange={e => setAutoPayName(e.target.value)} 
-                    required 
-                  />
-                </div>
-                <div className="form-row">
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Amount</label>
-                    <input 
-                      type="number" 
-                      className="modal-input" 
-                      placeholder="0.00" 
-                      value={autoPayAmount} 
-                      onChange={e => setAutoPayAmount(e.target.value)} 
-                      required 
-                    />
-                  </div>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Frequency</label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input 
-                        type="number" 
-                        className="modal-input" 
-                        style={{ width: '60px', textAlign: 'center' }}
-                        value={autoPayFreqValue} 
-                        onChange={e => setAutoPayFreqValue(e.target.value)} 
-                        min="1"
-                        required 
-                      />
-                      <div className="custom-select-wrapper" style={{ flex: 1 }}>
-                        <div className={`custom-select-trigger ${activeDropdown === 'apFreqUnit' ? 'open' : ''}`} onClick={() => setActiveDropdown('apFreqUnit')}>
-                          per {autoPayFreqUnit?.toLowerCase()}
-                        </div>
-                        {activeDropdown === 'apFreqUnit' && (
-                          <div className="popup-dropdown-container">
-                            <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                            <ul className="custom-dropdown popup">
-                              <li onClick={() => { setAutoPayFreqUnit('Minute'); setActiveDropdown(null); }}>per minute</li>
-                              <li onClick={() => { setAutoPayFreqUnit('Hour'); setActiveDropdown(null); }}>per hour</li>
-                              <li onClick={() => { setAutoPayFreqUnit('Day'); setActiveDropdown(null); }}>per day</li>
-                              <li onClick={() => { setAutoPayFreqUnit('Month'); setActiveDropdown(null); }}>per month</li>
-                              <li onClick={() => { setAutoPayFreqUnit('Year'); setActiveDropdown(null); }}>per year</li>
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Category</label>
-                  <div className="custom-select-wrapper">
-                    <div className={`custom-select-trigger ${activeDropdown === 'apCat' ? 'open' : ''}`} onClick={() => setActiveDropdown('apCat')}>
-                      {autoPayCat || 'Select Category'}
-                    </div>
-                    {activeDropdown === 'apCat' && (
-                      <div className="popup-dropdown-container">
-                        <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                        <ul className="custom-dropdown popup">
-                          <div className="popup-header">Select Category</div>
-                          {categories.map(cat => (
-                            <li key={cat} onClick={() => { setAutoPayCat(cat); setActiveDropdown(null); }}>{cat}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Time</label>
-                    <input 
-                      type="time" 
-                      className="modal-input" 
-                      value={autoPayTime} 
-                      onChange={e => setAutoPayTime(e.target.value)} 
-                      required 
-                    />
-                  </div>
-                  <div className="form-group" style={{ flex: 1 }}>
-                    <label>Start Date</label>
-                    <input 
-                      type="date" 
-                      className="modal-input" 
-                      value={autoPayStartDate} 
-                      onChange={e => setAutoPayStartDate(e.target.value)} 
-                    />
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Link Bank/Account</label>
-                  <div className="custom-select-wrapper">
-                    <div className={`custom-select-trigger ${activeDropdown === 'apBank' ? 'open' : ''}`} onClick={() => setActiveDropdown('apBank')}>
-                      {banks.find(b => b.id === autoPayBankId)?.name || 'Select Account'}
-                    </div>
-                    {activeDropdown === 'apBank' && (
-                      <div className="popup-dropdown-container">
-                        <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                        <ul className="custom-dropdown popup">
-                          <div className="popup-header">Link Account</div>
-                          {banks.map(bank => (
-                            <li key={bank.id} onClick={() => { setAutoPayBankId(bank.id); setActiveDropdown(null); }}>
-                              {bank.name} (₹{bank.balance.toFixed(2)})
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <button type="submit" className="submit-btn">{editingAutoPayId ? 'Update' : 'Schedule'} Auto Pay</button>
-             </form>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }
