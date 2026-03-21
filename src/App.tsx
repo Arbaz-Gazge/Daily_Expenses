@@ -33,6 +33,19 @@ interface BankTransaction {
   time: string;
 }
 
+interface AutoPay {
+  id: string;
+  name: string;
+  amount: number;
+  frequency: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+  category: string;
+  time: string;
+  startDate: string;
+  bankId: string;
+  lastExecutedDate?: string;
+  status: 'Active' | 'Paused';
+}
+
 interface Settings {
   theme: 'light' | 'dark';
   timeFormat: '12h' | '24h';
@@ -109,6 +122,18 @@ function App() {
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
   const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([]);
   const [editingBankTransactionId, setEditingBankTransactionId] = useState<string | null>(null);
+
+  // Auto Pay States
+  const [autoPays, setAutoPays] = useState<AutoPay[]>([]);
+  const [showAutoPayModal, setShowAutoPayModal] = useState(false);
+  const [autoPayName, setAutoPayName] = useState('');
+  const [autoPayAmount, setAutoPayAmount] = useState('');
+  const [autoPayFreq, setAutoPayFreq] = useState<'Daily' | 'Weekly' | 'Monthly' | 'Yearly'>('Monthly');
+  const [autoPayCat, setAutoPayCat] = useState('');
+  const [autoPayTime, setAutoPayTime] = useState('00:00');
+  const [autoPayStartDate, setAutoPayStartDate] = useState('');
+  const [autoPayBankId, setAutoPayBankId] = useState('');
+  const [editingAutoPayId, setEditingAutoPayId] = useState<string | null>(null);
 
   // Bank Statement Filter States
   const [bankSearchQuery, setBankSearchQuery] = useState('');
@@ -231,6 +256,9 @@ function App() {
       const savedBankTrx = await Preferences.get({ key: 'bankTransactions' });
       if (savedBankTrx.value) setBankTransactions(JSON.parse(savedBankTrx.value));
 
+      const savedAutoPays = await Preferences.get({ key: 'autoPays' });
+      if (savedAutoPays.value) setAutoPays(JSON.parse(savedAutoPays.value));
+
       const savedDepositCats = await Preferences.get({ key: 'depositCategories' });
       if (savedDepositCats.value) {
         setDepositCategories(JSON.parse(savedDepositCats.value));
@@ -269,6 +297,96 @@ function App() {
       Preferences.set({ key: 'bankTransactions', value: JSON.stringify(bankTransactions) });
     }
   }, [bankTransactions, dataLoaded]);
+
+  useEffect(() => {
+    if (dataLoaded) {
+      Preferences.set({ key: 'autoPays', value: JSON.stringify(autoPays) });
+    }
+  }, [autoPays, dataLoaded]);
+
+  useEffect(() => {
+    if (dataLoaded && autoPays.length > 0) {
+      checkAndExecuteAutoPays();
+    }
+  }, [dataLoaded]); // Only check on load
+
+  const checkAndExecuteAutoPays = () => {
+    const todayStr = getLocalDateStr(new Date());
+    const now = new Date();
+    const currentHHMM = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    
+    let newExpenses: Expense[] = [];
+    let newTrxList: BankTransaction[] = [];
+    let changed = false;
+
+    setAutoPays(prevAPs => {
+      const nextAPs = prevAPs.map(ap => {
+        if (ap.status === 'Paused') return ap;
+        if (ap.lastExecutedDate === todayStr) return ap; // Already ran today
+        
+        if (todayStr >= ap.startDate && currentHHMM >= ap.time) {
+          // Verify frequency
+          let shouldExecute = !ap.lastExecutedDate;
+          if (ap.lastExecutedDate) {
+            const last = new Date(ap.lastExecutedDate);
+            const diffDays = Math.floor((now.getTime() - last.getTime()) / (1000 * 3600 * 24));
+            if (ap.frequency === 'Daily' && diffDays >= 1) shouldExecute = true;
+            if (ap.frequency === 'Weekly' && diffDays >= 7) shouldExecute = true;
+            if (ap.frequency === 'Monthly') {
+              if (now.getMonth() !== last.getMonth() || now.getFullYear() !== last.getFullYear()) {
+                if (now.getDate() >= last.getDate()) shouldExecute = true;
+              }
+            }
+            if (ap.frequency === 'Yearly' && now.getFullYear() > last.getFullYear()) {
+               if (now.getMonth() >= last.getMonth() && now.getDate() >= last.getDate()) shouldExecute = true;
+            }
+          }
+
+          if (shouldExecute) {
+            changed = true;
+            const expenseId = Date.now().toString() + Math.random().toString(36).substring(7);
+            const linkedBank = banks.find(b => b.id === ap.bankId);
+            
+            newExpenses.push({
+              id: expenseId,
+              amount: ap.amount,
+              description: ap.name + ' (Auto Pay)',
+              date: todayStr,
+              time: ap.time,
+              category: ap.category,
+              paymentMode: linkedBank?.name || 'Auto Pay'
+            });
+            
+            newTrxList.push({
+              id: 'tr-' + expenseId,
+              bankId: ap.bankId,
+              amount: ap.amount,
+              type: 'out',
+              description: ap.name + ' (Auto Pay)',
+              category: ap.category,
+              date: todayStr,
+              time: ap.time
+            });
+
+            return { ...ap, lastExecutedDate: todayStr };
+          }
+        }
+        return ap;
+      });
+      return nextAPs;
+    });
+
+    if (changed) {
+      setExpenses(prev => [...prev, ...newExpenses]);
+      setBankTransactions(prev => [...prev, ...newTrxList]);
+      // Deduct from banks
+      setBanks(prevBanks => prevBanks.map(b => {
+        const trxsForThisBank = newTrxList.filter(t => t.bankId === b.id);
+        const totalDeduction = trxsForThisBank.reduce((acc, t) => acc + t.amount, 0);
+        return totalDeduction > 0 ? { ...b, balance: b.balance - totalDeduction } : b;
+      }));
+    }
+  };
 
   useEffect(() => {
     if (dataLoaded && depositCategories.length > 0) {
@@ -517,6 +635,61 @@ function App() {
     setRemark(expense.remark || '');
     setEditExpenseId(expense.id);
     handleViewSwitch('Add Expense');
+  };
+
+  const deleteAutoPay = (id: string) => {
+    showConfirm('Are you sure you want to stop this Auto Pay?', () => {
+      setAutoPays(prev => prev.filter(ap => ap.id !== id));
+    });
+  };
+
+  const startEditAutoPay = (ap: AutoPay) => {
+    setAutoPayName(ap.name);
+    setAutoPayAmount(ap.amount.toString());
+    setAutoPayFreq(ap.frequency);
+    setAutoPayCat(ap.category);
+    setAutoPayTime(ap.time);
+    setAutoPayStartDate(ap.startDate);
+    setAutoPayBankId(ap.bankId);
+    setEditingAutoPayId(ap.id);
+    setShowAutoPayModal(true);
+  };
+
+  const addAutoPay = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!autoPayName.trim() || !autoPayAmount.trim() || !autoPayBankId) {
+      showAlert('Please fill all required fields');
+      return;
+    }
+    const newAP: AutoPay = {
+      id: editingAutoPayId || Date.now().toString(),
+      name: autoPayName.trim(),
+      amount: parseFloat(autoPayAmount),
+      frequency: autoPayFreq,
+      category: autoPayCat || 'General',
+      time: autoPayTime,
+      startDate: autoPayStartDate || getLocalDateStr(new Date()),
+      bankId: autoPayBankId,
+      status: 'Active'
+    };
+    if (editingAutoPayId) {
+      setAutoPays(prev => prev.map(ap => ap.id === editingAutoPayId ? newAP : ap));
+    } else {
+      setAutoPays(prev => [...prev, newAP]);
+    }
+    setShowAutoPayModal(false);
+    resetAutoPayForm();
+  };
+
+  const resetAutoPayForm = () => {
+    setAutoPayName('');
+    setAutoPayAmount('');
+    setAutoPayFreq('Monthly');
+    setAutoPayCat('');
+    setAutoPayTime('00:00');
+    setAutoPayStartDate('');
+    setAutoPayBankId('');
+    setEditingAutoPayId(null);
   };
 
   const addCategory = () => {
@@ -869,6 +1042,9 @@ function App() {
           </li>
           <li className={currentView === 'Banks' ? 'active' : ''} onClick={() => { handleViewSwitch('Banks'); setIsSidebarOpen(false); }}>
             Banks
+          </li>
+          <li className={currentView === 'Auto Pay' ? 'active' : ''} onClick={() => { handleViewSwitch('Auto Pay'); setIsSidebarOpen(false); }}>
+            Auto Pay
           </li>
           <li className={currentView === 'Backup & Restore' ? 'active' : ''} onClick={() => { handleViewSwitch('Backup & Restore'); setIsSidebarOpen(false); }}>
             Backup & Restore
@@ -1568,6 +1744,46 @@ function App() {
                 })()}
               </div>
             )}
+
+            {currentView === 'Auto Pay' && (
+              <div className="autopay-view anim-fade-in">
+                <div className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ margin: 0 }}>Auto Pay (SIP)</h2>
+                  <button className="add-bank-btn" onClick={() => { resetAutoPayForm(); setShowAutoPayModal(true); }}>+ Set Auto Pay</button>
+                </div>
+                
+                {autoPays.length === 0 ? (
+                  <div className="empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-secondary)', borderRadius: '20px', border: '1px dashed var(--border-color)' }}>
+                    <p style={{ color: 'var(--text-tertiary)', fontSize: '1.1rem' }}>No automated payments scheduled.</p>
+                    <button className="add-bank-btn" style={{ marginTop: '1rem' }} onClick={() => { resetAutoPayForm(); setShowAutoPayModal(true); }}>Create Your First Auto Pay</button>
+                  </div>
+                ) : (
+                  <div className="autopay-list">
+                    {autoPays.map(ap => {
+                      const bank = banks.find(b => b.id === ap.bankId);
+                      return (
+                        <div key={ap.id} className="autopay-card shadow-sm">
+                          <div className="card-top">
+                             <div className="card-info">
+                               <h3>{ap.name}</h3>
+                               <p className="ap-meta">{ap.frequency} • {ap.time} • {ap.category}</p>
+                             </div>
+                             <div className="card-amount">₹{ap.amount.toFixed(2)}</div>
+                          </div>
+                          <div className="card-bottom">
+                            <span className="linked-bank">From: {bank ? bank.name : 'Unknown Bank'}</span>
+                            <div className="card-actions">
+                               <button className="row-btn edit" onClick={() => startEditAutoPay(ap)}>✎</button>
+                               <button className="row-btn delete" onClick={() => deleteAutoPay(ap.id)}>✕</button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
             {currentView === 'About Us' && (
               <div className="about-container">
                 <h2>About Expense Tracker</h2>
@@ -2152,6 +2368,102 @@ function App() {
                 {dialog.type === 'confirm' ? 'Confirm' : 'OK'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto Pay Modal */}
+      {showAutoPayModal && (
+        <div className="modal-overlay" style={{ zIndex: 3000 }}>
+          <div className="modal-content anim-slide-up">
+             <div className="modal-header">
+                <h2>{editingAutoPayId ? 'Edit Auto Pay' : 'Set Auto Pay'}</h2>
+                <button className="close-btn" onClick={() => setShowAutoPayModal(false)}>×</button>
+             </div>
+             <form className="modal-form" onSubmit={addAutoPay}>
+                <div className="form-group">
+                  <label>Auto Pay Name</label>
+                  <input 
+                    type="text" 
+                    className="modal-input" 
+                    placeholder="e.g. House Rent, Monthly Gym" 
+                    value={autoPayName} 
+                    onChange={e => setAutoPayName(e.target.value)} 
+                    required 
+                  />
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Amount</label>
+                    <input 
+                      type="number" 
+                      className="modal-input" 
+                      placeholder="0.00" 
+                      value={autoPayAmount} 
+                      onChange={e => setAutoPayAmount(e.target.value)} 
+                      required 
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Frequency</label>
+                    <select 
+                      className="modal-input" 
+                      value={autoPayFreq} 
+                      onChange={e => setAutoPayFreq(e.target.value as any)}
+                    >
+                      <option value="Daily">Daily</option>
+                      <option value="Weekly">Weekly</option>
+                      <option value="Monthly">Monthly</option>
+                      <option value="Yearly">Yearly</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Category</label>
+                  <select 
+                    className="modal-input" 
+                    value={autoPayCat} 
+                    onChange={e => setAutoPayCat(e.target.value)}
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Time</label>
+                    <input 
+                      type="time" 
+                      className="modal-input" 
+                      value={autoPayTime} 
+                      onChange={e => setAutoPayTime(e.target.value)} 
+                      required 
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label>Start Date</label>
+                    <input 
+                      type="date" 
+                      className="modal-input" 
+                      value={autoPayStartDate} 
+                      onChange={e => setAutoPayStartDate(e.target.value)} 
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Link Bank/Account</label>
+                  <select 
+                    className="modal-input" 
+                    value={autoPayBankId} 
+                    onChange={e => setAutoPayBankId(e.target.value)}
+                    required
+                  >
+                    <option value="">Select Account</option>
+                    {banks.map(bank => <option key={bank.id} value={bank.id}>{bank.name} (₹{bank.balance.toFixed(2)})</option>)}
+                  </select>
+                </div>
+                <button type="submit" className="submit-btn">{editingAutoPayId ? 'Update' : 'Schedule'} Auto Pay</button>
+             </form>
           </div>
         </div>
       )}
