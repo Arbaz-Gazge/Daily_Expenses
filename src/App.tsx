@@ -3,6 +3,7 @@ import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import './App.css';
 
 interface Expense {
@@ -38,6 +39,8 @@ interface AutoPay {
   name: string;
   amount: number;
   frequency: 'Daily' | 'Weekly' | 'Monthly' | 'Yearly';
+  frequencyValue: number;
+  frequencyUnit: 'Minute' | 'Hour' | 'Day' | 'Month' | 'Year';
   category: string;
   time: string;
   startDate: string;
@@ -128,7 +131,8 @@ function App() {
   const [showAutoPayModal, setShowAutoPayModal] = useState(false);
   const [autoPayName, setAutoPayName] = useState('');
   const [autoPayAmount, setAutoPayAmount] = useState('');
-  const [autoPayFreq, setAutoPayFreq] = useState<'Daily' | 'Weekly' | 'Monthly' | 'Yearly'>('Monthly');
+  const [autoPayFreqValue, setAutoPayFreqValue] = useState('1');
+  const [autoPayFreqUnit, setAutoPayFreqUnit] = useState<'Minute' | 'Hour' | 'Day' | 'Month' | 'Year'>('Month');
   const [autoPayCat, setAutoPayCat] = useState('');
   const [autoPayTime, setAutoPayTime] = useState('00:00');
   const [autoPayStartDate, setAutoPayStartDate] = useState('');
@@ -141,6 +145,7 @@ function App() {
   const [bankDateFilter, setBankDateFilter] = useState('All');
   const [bankStartDate, setBankStartDate] = useState('');
   const [bankEndDate, setBankEndDate] = useState('');
+  const [triggerCheck, setTriggerCheck] = useState(0);
 
   const defaultCategories = [
     "Food & Dining",
@@ -308,83 +313,117 @@ function App() {
     if (dataLoaded && autoPays.length > 0) {
       checkAndExecuteAutoPays();
     }
-  }, [dataLoaded]); // Only check on load
+    if (dataLoaded && Capacitor.isNativePlatform()) {
+      LocalNotifications.requestPermissions();
+    }
+  }, [dataLoaded, triggerCheck, autoPays, banks]); // Added banks to dependencies for latest data
 
   const checkAndExecuteAutoPays = () => {
-    const todayStr = getLocalDateStr(new Date());
-    const now = new Date();
-    const currentHHMM = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-    
     let newExpenses: Expense[] = [];
     let newTrxList: BankTransaction[] = [];
+    let executedAPs: string[] = [];
+    let nextAPs: AutoPay[] = [];
     let changed = false;
 
-    setAutoPays(prevAPs => {
-      const nextAPs = prevAPs.map(ap => {
-        if (ap.status === 'Paused') return ap;
-        if (ap.lastExecutedDate === todayStr) return ap; // Already ran today
-        
-        if (todayStr >= ap.startDate && currentHHMM >= ap.time) {
-          // Verify frequency
-          let shouldExecute = !ap.lastExecutedDate;
-          if (ap.lastExecutedDate) {
-            const last = new Date(ap.lastExecutedDate);
-            const diffDays = Math.floor((now.getTime() - last.getTime()) / (1000 * 3600 * 24));
-            if (ap.frequency === 'Daily' && diffDays >= 1) shouldExecute = true;
-            if (ap.frequency === 'Weekly' && diffDays >= 7) shouldExecute = true;
-            if (ap.frequency === 'Monthly') {
-              if (now.getMonth() !== last.getMonth() || now.getFullYear() !== last.getFullYear()) {
-                if (now.getDate() >= last.getDate()) shouldExecute = true;
+    // Use current state since we're called within an effect watching autoPays
+    nextAPs = autoPays.map(ap => {
+      if (ap.status === 'Paused') return ap;
+      
+      const lastExecFull = ap.lastExecutedDate;
+      const todayStr = getLocalDateStr(new Date());
+      const now = new Date();
+      const currentHHMM = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+
+      if (todayStr >= ap.startDate) {
+        let shouldExecute = !lastExecFull;
+
+        if (lastExecFull) {
+          // If it has a T, it's a full ISO string (granular). Otherwise just a date string.
+          const lastDateObj = new Date(lastExecFull.includes('T') ? lastExecFull : (lastExecFull + 'T' + ap.time));
+          const diffMs = now.getTime() - lastDateObj.getTime();
+
+          if (ap.frequencyUnit === 'Minute' && diffMs >= (ap.frequencyValue || 1) * 60000) shouldExecute = true;
+          else if (ap.frequencyUnit === 'Hour' && diffMs >= (ap.frequencyValue || 1) * 3600000) shouldExecute = true;
+          else if (ap.frequencyUnit === 'Day') {
+            const diffDays = Math.floor(diffMs / 86400000);
+            if (diffDays >= (ap.frequencyValue || 1) && currentHHMM >= ap.time) shouldExecute = true;
+          }
+          else if (ap.frequencyUnit === 'Month') {
+            const monthsDiff = (now.getFullYear() - lastDateObj.getFullYear()) * 12 + (now.getMonth() - lastDateObj.getMonth());
+            if (monthsDiff >= (ap.frequencyValue || 1) && now.getDate() >= lastDateObj.getDate() && currentHHMM >= ap.time) shouldExecute = true;
+            else if (monthsDiff > (ap.frequencyValue || 1)) shouldExecute = true;
+          }
+          else if (ap.frequencyUnit === 'Year') {
+            const yearsDiff = now.getFullYear() - lastDateObj.getFullYear();
+            if (yearsDiff >= (ap.frequencyValue || 1)) {
+              if (now.getMonth() > lastDateObj.getMonth() || (now.getMonth() === lastDateObj.getMonth() && now.getDate() >= lastDateObj.getDate() && currentHHMM >= ap.time)) {
+                shouldExecute = true;
               }
             }
-            if (ap.frequency === 'Yearly' && now.getFullYear() > last.getFullYear()) {
-               if (now.getMonth() >= last.getMonth() && now.getDate() >= last.getDate()) shouldExecute = true;
-            }
           }
-
-          if (shouldExecute) {
-            changed = true;
-            const expenseId = Date.now().toString() + Math.random().toString(36).substring(7);
-            const linkedBank = banks.find(b => b.id === ap.bankId);
-            
-            newExpenses.push({
-              id: expenseId,
-              amount: ap.amount,
-              description: ap.name + ' (Auto Pay)',
-              date: todayStr,
-              time: ap.time,
-              category: ap.category,
-              paymentMode: linkedBank?.name || 'Auto Pay'
-            });
-            
-            newTrxList.push({
-              id: 'tr-' + expenseId,
-              bankId: ap.bankId,
-              amount: ap.amount,
-              type: 'out',
-              description: ap.name + ' (Auto Pay)',
-              category: ap.category,
-              date: todayStr,
-              time: ap.time
-            });
-
-            return { ...ap, lastExecutedDate: todayStr };
-          }
+        } else {
+           // First time execution: only if current time >= target time
+           if (currentHHMM < ap.time) shouldExecute = false;
         }
-        return ap;
-      });
-      return nextAPs;
+
+        if (shouldExecute) {
+          changed = true;
+          const expenseId = Date.now().toString() + Math.random().toString(36).substring(7);
+          const linkedBank = banks.find(b => b.id === ap.bankId);
+          
+          newExpenses.push({
+            id: expenseId,
+            amount: ap.amount,
+            description: ap.name + ' (Auto Pay)',
+            date: todayStr,
+            time: currentHHMM,
+            category: ap.category,
+            paymentMode: linkedBank?.name || 'Auto Pay'
+          });
+          
+          newTrxList.push({
+            id: 'tr-' + expenseId,
+            bankId: ap.bankId,
+            amount: ap.amount,
+            type: 'out',
+            description: ap.name + ' (Auto Pay)',
+            category: ap.category,
+            date: todayStr,
+            time: currentHHMM
+          });
+
+          executedAPs.push(ap.name + ': ₹' + ap.amount);
+          // Store full string for granular units to track minutes/seconds
+          const execFullStr = (ap.frequencyUnit === 'Minute' || ap.frequencyUnit === 'Hour') ? now.toISOString() : todayStr;
+          return { ...ap, lastExecutedDate: execFullStr };
+        }
+      }
+      return ap;
     });
 
     if (changed) {
+      setAutoPays(nextAPs);
       setExpenses(prev => [...prev, ...newExpenses]);
       setBankTransactions(prev => [...prev, ...newTrxList]);
-      // Deduct from banks
       setBanks(prevBanks => prevBanks.map(b => {
         const trxsForThisBank = newTrxList.filter(t => t.bankId === b.id);
         const totalDeduction = trxsForThisBank.reduce((acc, t) => acc + t.amount, 0);
         return totalDeduction > 0 ? { ...b, balance: b.balance - totalDeduction } : b;
       }));
+
+      if (Capacitor.isNativePlatform() && executedAPs.length > 0) {
+        LocalNotifications.schedule({
+          notifications: [
+            {
+              title: 'Auto Pay Success',
+              body: `Executed: ${executedAPs.join(', ')}`,
+              id: Date.now(),
+              schedule: { at: new Date(Date.now() + 500) },
+              sound: 'default'
+            }
+          ]
+        }).catch(err => console.error('Notification error', err));
+      }
     }
   };
 
@@ -646,7 +685,8 @@ function App() {
   const startEditAutoPay = (ap: AutoPay) => {
     setAutoPayName(ap.name);
     setAutoPayAmount(ap.amount.toString());
-    setAutoPayFreq(ap.frequency);
+    setAutoPayFreqValue((ap.frequencyValue || 1).toString());
+    setAutoPayFreqUnit(ap.frequencyUnit || 'Month');
     setAutoPayCat(ap.category);
     setAutoPayTime(ap.time);
     setAutoPayStartDate(ap.startDate);
@@ -665,7 +705,9 @@ function App() {
       id: editingAutoPayId || Date.now().toString(),
       name: autoPayName.trim(),
       amount: parseFloat(autoPayAmount),
-      frequency: autoPayFreq,
+      frequency: 'Monthly', // Legacy field, keeping for schema safety
+      frequencyValue: parseInt(autoPayFreqValue) || 1,
+      frequencyUnit: autoPayFreqUnit,
       category: autoPayCat || 'General',
       time: autoPayTime,
       startDate: autoPayStartDate || getLocalDateStr(new Date()),
@@ -679,12 +721,14 @@ function App() {
     }
     setShowAutoPayModal(false);
     resetAutoPayForm();
+    setTriggerCheck(prev => prev + 1);
   };
 
   const resetAutoPayForm = () => {
     setAutoPayName('');
     setAutoPayAmount('');
-    setAutoPayFreq('Monthly');
+    setAutoPayFreqValue('1');
+    setAutoPayFreqUnit('Month');
     setAutoPayCat('');
     setAutoPayTime('00:00');
     setAutoPayStartDate('');
@@ -1766,7 +1810,9 @@ function App() {
                           <div className="card-top">
                              <div className="card-info">
                                <h3>{ap.name}</h3>
-                               <p className="ap-meta">{ap.frequency} • {ap.time} • {ap.category}</p>
+                               <p className="ap-meta">
+                                 {ap.frequencyValue} per {ap.frequencyUnit?.toLowerCase()} • {ap.time} • {ap.category}
+                               </p>
                              </div>
                              <div className="card-amount">₹{ap.amount.toFixed(2)}</div>
                           </div>
@@ -2406,28 +2452,54 @@ function App() {
                   </div>
                   <div className="form-group" style={{ flex: 1 }}>
                     <label>Frequency</label>
-                    <select 
-                      className="modal-input" 
-                      value={autoPayFreq} 
-                      onChange={e => setAutoPayFreq(e.target.value as any)}
-                    >
-                      <option value="Daily">Daily</option>
-                      <option value="Weekly">Weekly</option>
-                      <option value="Monthly">Monthly</option>
-                      <option value="Yearly">Yearly</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        type="number" 
+                        className="modal-input" 
+                        style={{ width: '60px', textAlign: 'center' }}
+                        value={autoPayFreqValue} 
+                        onChange={e => setAutoPayFreqValue(e.target.value)} 
+                        min="1"
+                        required 
+                      />
+                      <div className="custom-select-wrapper" style={{ flex: 1 }}>
+                        <div className={`custom-select-trigger ${activeDropdown === 'apFreqUnit' ? 'open' : ''}`} onClick={() => setActiveDropdown('apFreqUnit')}>
+                          per {autoPayFreqUnit?.toLowerCase()}
+                        </div>
+                        {activeDropdown === 'apFreqUnit' && (
+                          <div className="popup-dropdown-container">
+                            <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                            <ul className="custom-dropdown popup">
+                              <li onClick={() => { setAutoPayFreqUnit('Minute'); setActiveDropdown(null); }}>per minute</li>
+                              <li onClick={() => { setAutoPayFreqUnit('Hour'); setActiveDropdown(null); }}>per hour</li>
+                              <li onClick={() => { setAutoPayFreqUnit('Day'); setActiveDropdown(null); }}>per day</li>
+                              <li onClick={() => { setAutoPayFreqUnit('Month'); setActiveDropdown(null); }}>per month</li>
+                              <li onClick={() => { setAutoPayFreqUnit('Year'); setActiveDropdown(null); }}>per year</li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div className="form-group">
                   <label>Category</label>
-                  <select 
-                    className="modal-input" 
-                    value={autoPayCat} 
-                    onChange={e => setAutoPayCat(e.target.value)}
-                  >
-                    <option value="">Select Category</option>
-                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
+                  <div className="custom-select-wrapper">
+                    <div className={`custom-select-trigger ${activeDropdown === 'apCat' ? 'open' : ''}`} onClick={() => setActiveDropdown('apCat')}>
+                      {autoPayCat || 'Select Category'}
+                    </div>
+                    {activeDropdown === 'apCat' && (
+                      <div className="popup-dropdown-container">
+                        <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                        <ul className="custom-dropdown popup">
+                          <div className="popup-header">Select Category</div>
+                          {categories.map(cat => (
+                            <li key={cat} onClick={() => { setAutoPayCat(cat); setActiveDropdown(null); }}>{cat}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group" style={{ flex: 1 }}>
@@ -2452,15 +2524,24 @@ function App() {
                 </div>
                 <div className="form-group">
                   <label>Link Bank/Account</label>
-                  <select 
-                    className="modal-input" 
-                    value={autoPayBankId} 
-                    onChange={e => setAutoPayBankId(e.target.value)}
-                    required
-                  >
-                    <option value="">Select Account</option>
-                    {banks.map(bank => <option key={bank.id} value={bank.id}>{bank.name} (₹{bank.balance.toFixed(2)})</option>)}
-                  </select>
+                  <div className="custom-select-wrapper">
+                    <div className={`custom-select-trigger ${activeDropdown === 'apBank' ? 'open' : ''}`} onClick={() => setActiveDropdown('apBank')}>
+                      {banks.find(b => b.id === autoPayBankId)?.name || 'Select Account'}
+                    </div>
+                    {activeDropdown === 'apBank' && (
+                      <div className="popup-dropdown-container">
+                        <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                        <ul className="custom-dropdown popup">
+                          <div className="popup-header">Link Account</div>
+                          {banks.map(bank => (
+                            <li key={bank.id} onClick={() => { setAutoPayBankId(bank.id); setActiveDropdown(null); }}>
+                              {bank.name} (₹{bank.balance.toFixed(2)})
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <button type="submit" className="submit-btn">{editingAutoPayId ? 'Update' : 'Schedule'} Auto Pay</button>
              </form>
