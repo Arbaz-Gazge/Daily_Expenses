@@ -22,6 +22,17 @@ interface Bank {
   balance: number;
 }
 
+interface BankTransaction {
+  id: string;
+  bankId: string;
+  amount: number;
+  type: 'in' | 'out';
+  description: string;
+  category: string;
+  date: string;
+  time: string;
+}
+
 interface Settings {
   theme: 'light' | 'dark';
   timeFormat: '12h' | '24h';
@@ -78,7 +89,11 @@ function App() {
   const [showBankModal, setShowBankModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
+  const [depositDescription, setDepositDescription] = useState('');
+  const [depositCategory, setDepositCategory] = useState('');
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
+  const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([]);
+  const [activeStatementBankId, setActiveStatementBankId] = useState<string | null>(null);
 
   const defaultCategories = [
     "Food & Dining",
@@ -181,6 +196,9 @@ function App() {
       const savedBanks = await Preferences.get({ key: 'banks' });
       if (savedBanks.value) setBanks(JSON.parse(savedBanks.value));
 
+      const savedBankTrx = await Preferences.get({ key: 'bankTransactions' });
+      if (savedBankTrx.value) setBankTransactions(JSON.parse(savedBankTrx.value));
+
       setDataLoaded(true);
     };
     loadData();
@@ -206,6 +224,12 @@ function App() {
       Preferences.set({ key: 'banks', value: JSON.stringify(banks) });
     }
   }, [banks, dataLoaded]);
+
+  useEffect(() => {
+    if (dataLoaded) {
+      Preferences.set({ key: 'bankTransactions', value: JSON.stringify(bankTransactions) });
+    }
+  }, [bankTransactions, dataLoaded]);
 
   useEffect(() => {
     if (!dataLoaded) return; // Prevent overwriting storage with defaults on first mount
@@ -274,6 +298,20 @@ function App() {
             ? { ...b, balance: b.balance - amountNum } 
             : b
         ));
+
+        // Create transaction record
+        const now = new Date();
+        const trx: BankTransaction = {
+          id: Date.now().toString() + '_out',
+          bankId: sourceBank.id,
+          amount: amountNum,
+          type: 'out',
+          description,
+          category: category || 'Uncategorized',
+          date: date || now.toISOString().split('T')[0],
+          time: time || now.toTimeString().split(' ')[0].substring(0, 5)
+        };
+        setBankTransactions(prev => [trx, ...prev]);
       }
 
       setExpenses([...expenses, newExpense]);
@@ -336,12 +374,30 @@ function App() {
   const handleDeposit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBankId || !depositAmount) return;
+    const amountNum = parseFloat(depositAmount);
     setBanks(prev => prev.map(b => 
       b.id === selectedBankId 
-        ? { ...b, balance: b.balance + parseFloat(depositAmount) } 
+        ? { ...b, balance: b.balance + amountNum } 
         : b
     ));
+
+    // Create transaction record
+    const now = new Date();
+    const trx: BankTransaction = {
+      id: Date.now().toString() + '_in',
+      bankId: selectedBankId,
+      amount: amountNum,
+      type: 'in',
+      description: depositDescription || 'Deposit',
+      category: depositCategory || 'Cash In',
+      date: now.toISOString().split('T')[0], // and wait, today's date should be used
+      time: now.toTimeString().split(' ')[0].substring(0, 5)
+    };
+    setBankTransactions(prev => [trx, ...prev]);
+
     setDepositAmount('');
+    setDepositDescription('');
+    setDepositCategory('');
     setShowDepositModal(false);
     setSelectedBankId(null);
   };
@@ -586,7 +642,7 @@ function App() {
   const totalExpense = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   const handleBackup = async () => {
-    const dataStr = JSON.stringify({ expenses, categories, settings, banks }, null, 2);
+    const dataStr = JSON.stringify({ expenses, categories, settings, banks, bankTransactions }, null, 2);
     const fileName = `expense_backup_${new Date().toISOString().split('T')[0]}.json`;
 
     if (Capacitor.isNativePlatform()) {
@@ -631,6 +687,7 @@ function App() {
         if (data.categories) setCategories(data.categories);
         if (data.settings) setSettings(data.settings);
         if (data.banks) setBanks(data.banks);
+        if (data.bankTransactions) setBankTransactions(data.bankTransactions);
         alert('Data restored successfully!');
       } catch (err) {
         alert('Invalid backup file format.');
@@ -1166,9 +1223,38 @@ function App() {
                               setShowDepositModal(true);
                             }}
                           >
-                            + Cash In (Deposit)
+                            + Cash In
+                          </button>
+                          <button 
+                            className="statement-toggle-btn"
+                            onClick={() => setActiveStatementBankId(activeStatementBankId === bank.id ? null : bank.id)}
+                          >
+                            {activeStatementBankId === bank.id ? 'Hide Statement' : 'Statement'}
                           </button>
                         </div>
+
+                        {activeStatementBankId === bank.id && (
+                          <div className="bank-statement anim-fade-in">
+                            <h4 className="statement-header">Recent Transactions</h4>
+                            <div className="statement-list">
+                              {bankTransactions.filter(t => t.bankId === bank.id).length === 0 ? (
+                                <p className="no-trx">No transactions yet.</p>
+                              ) : (
+                                bankTransactions.filter(t => t.bankId === bank.id).map(trx => (
+                                  <div key={trx.id} className="statement-item">
+                                    <div className="trx-main">
+                                      <div className="trx-desc">{trx.description}</div>
+                                      <div className="trx-meta">{trx.date.split('-').reverse().join('/')} • {formatTime(trx.time)}</div>
+                                    </div>
+                                    <div className={`trx-amount ${trx.type}`}>
+                                      {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1321,6 +1407,26 @@ function App() {
                   className="modal-input"
                   required
                   autoFocus
+                />
+              </div>
+              <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
+                <label>Description (Optional)</label>
+                <input 
+                  type="text" 
+                  value={depositDescription} 
+                  onChange={e => setDepositDescription(e.target.value)} 
+                  placeholder="e.g. Salary, Gift" 
+                  className="modal-input"
+                />
+              </div>
+              <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
+                <label>Category (Optional)</label>
+                <input 
+                  type="text" 
+                  value={depositCategory} 
+                  onChange={e => setDepositCategory(e.target.value)} 
+                  placeholder="e.g. Income, Savings" 
+                  className="modal-input"
                 />
               </div>
               <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
