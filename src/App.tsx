@@ -99,9 +99,9 @@ function App() {
   const [calendarMonth, setCalendarMonth] = useState(new Date()); // Month currently viewed in calendar
 
   // Settings
-  const [settings, setSettings] = useState<Settings>({ 
+  const [settings, setSettings] = useState<Settings>({
     theme: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light',
-    timeFormat: '12h' 
+    timeFormat: '12h'
   });
 
   // Backup & Restore
@@ -179,13 +179,13 @@ function App() {
       // Remove any trailing operators before calculating
       const cleanExpr = expr.replace(/[+\-*/]$/, '');
       if (!cleanExpr) return '0';
-      
+
       // Simple evaluator using Function constructor for basic math
       // Safe here because we control the input (only numbers and operators)
       // eslint-disable-next-line no-new-func
       const result = new Function(`return ${cleanExpr}`)();
       if (isNaN(result) || !isFinite(result)) return '0';
-      
+
       // Format to 2 decimal places if needed
       return Number.isInteger(result) ? result.toString() : result.toFixed(2);
     } catch (e) {
@@ -251,8 +251,8 @@ function App() {
       const savedFilters = await Preferences.get({ key: 'filters' });
       if (savedFilters.value) {
         const filtersData = JSON.parse(savedFilters.value);
-         if (filtersData.categoryFilters) setCategoryFilters(filtersData.categoryFilters);
-         else if (filtersData.categoryFilter) setCategoryFilters([filtersData.categoryFilter]);
+        if (filtersData.categoryFilters) setCategoryFilters(filtersData.categoryFilters);
+        else if (filtersData.categoryFilter) setCategoryFilters([filtersData.categoryFilter]);
         if (filtersData.dateFilter) setDateFilter(filtersData.dateFilter);
         if (filtersData.paymentModeFilter) setPaymentModeFilter(filtersData.paymentModeFilter);
         if (filtersData.startDate) setStartDate(filtersData.startDate);
@@ -331,7 +331,7 @@ function App() {
     // Use current state since we're called within an effect watching autoPays
     nextAPs = autoPays.map(ap => {
       if (ap.status === 'Paused') return ap;
-      
+
       const lastExecFull = ap.lastExecutedDate;
       const todayStr = getLocalDateStr(new Date());
       const now = new Date();
@@ -365,15 +365,15 @@ function App() {
             }
           }
         } else {
-           // First time execution: only if current time >= target time
-           if (currentHHMM < ap.time) shouldExecute = false;
+          // First time execution: only if current time >= target time
+          if (currentHHMM < ap.time) shouldExecute = false;
         }
 
         if (shouldExecute) {
           changed = true;
           const expenseId = Date.now().toString() + Math.random().toString(36).substring(7);
           const linkedBank = banks.find(b => b.id === ap.bankId);
-          
+
           newExpenses.push({
             id: expenseId,
             amount: ap.amount,
@@ -383,7 +383,7 @@ function App() {
             category: ap.category,
             paymentMode: linkedBank?.name || 'Auto Pay'
           });
-          
+
           newTrxList.push({
             id: 'tr-' + expenseId,
             bankId: ap.bankId,
@@ -485,7 +485,7 @@ function App() {
     if (touchStart.current === 0 || isRefreshing) return;
     const currentY = e.touches[0].clientY;
     const pullDistance = Math.max(0, currentY - touchStart.current);
-    
+
     // Max pull height 220px
     if (pullDistance < 220) {
       setPullY(pullDistance);
@@ -541,9 +541,9 @@ function App() {
       // Handle bank balance deduction
       const sourceBank = banks.find(b => b.name === (paymentMode || 'Not Specified'));
       if (sourceBank) {
-        setBanks(prev => prev.map(b => 
-          b.id === sourceBank.id 
-            ? { ...b, balance: b.balance - amountNum } 
+        setBanks(prev => prev.map(b =>
+          b.id === sourceBank.id
+            ? { ...b, balance: b.balance - amountNum }
             : b
         ));
 
@@ -576,7 +576,7 @@ function App() {
   };
 
   const toggleSelection = (id: string) => {
-    setSelectedIds(prev => 
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
@@ -612,7 +612,7 @@ function App() {
     const now = new Date();
     const bankId = now.getTime().toString();
     const amountNum = parseFloat(bankBalance) || 0;
-    
+
     if (amountNum > 0) {
       const trx: BankTransaction = {
         id: bankId + '_initial',
@@ -658,17 +658,17 @@ function App() {
       if (oldTrx) {
         const diff = amountNum - oldTrx.amount;
         setBanks(prev => prev.map(b => b.id === selectedBankId ? { ...b, balance: b.balance + diff } : b));
-        setBankTransactions(prev => prev.map(t => 
-          t.id === editingBankTransactionId 
-            ? { ...t, amount: amountNum, description: depositDescription, category: depositCategory } 
+        setBankTransactions(prev => prev.map(t =>
+          t.id === editingBankTransactionId
+            ? { ...t, amount: amountNum, description: depositDescription, category: depositCategory }
             : t
         ));
       }
     } else {
       // Handle New
-      setBanks(prev => prev.map(b => 
-        b.id === selectedBankId 
-          ? { ...b, balance: b.balance + amountNum } 
+      setBanks(prev => prev.map(b =>
+        b.id === selectedBankId
+          ? { ...b, balance: b.balance + amountNum }
           : b
       ));
 
@@ -804,11 +804,11 @@ function App() {
           exp.category === oldName ? { ...exp, category: trimmedName } : exp
         ));
 
-         // Update filter if active
-         if (categoryFilters.includes(oldName)) {
-           setCategoryFilters(prev => prev.map(c => c === oldName ? trimmedName : c));
-         }
-         if (category === oldName) setCategory(trimmedName);
+        // Update filter if active
+        if (categoryFilters.includes(oldName)) {
+          setCategoryFilters(prev => prev.map(c => c === oldName ? trimmedName : c));
+        }
+        if (category === oldName) setCategory(trimmedName);
 
         setEditingCategoryIdx(null);
       } else {
@@ -819,7 +819,7 @@ function App() {
       }
       setNewCategory('');
     }
-  };  const toggleCategoryFilter = (cat: string) => {
+  }; const toggleCategoryFilter = (cat: string) => {
     if (cat === 'All') {
       setCategoryFilters(['All']);
     } else {
@@ -880,10 +880,10 @@ function App() {
         setDepositCategories(updated);
 
         // Update existing transactions
-        setBankTransactions(prev => prev.map(t => 
+        setBankTransactions(prev => prev.map(t =>
           t.type === 'in' && t.category === oldName ? { ...t, category: trimmedName } : t
         ));
-        
+
         if (depositCategory === oldName) setDepositCategory(trimmedName);
         setEditingDepositCategoryIdx(null);
       } else {
@@ -969,13 +969,13 @@ function App() {
   useEffect(() => {
     const handleGlobalMove = (e: PointerEvent) => {
       if (!isDraggingClock || !clockFaceRef.current) return;
-      
+
       const rect = clockFaceRef.current.getBoundingClientRect();
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
       const x = e.clientX - rect.left - centerX;
       const y = e.clientY - rect.top - centerY;
-      
+
       let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
       if (angle < 0) angle += 360;
 
@@ -1278,16 +1278,16 @@ function App() {
                 <div className="form-row">
                   <div className="form-group half">
                     <label>Date</label>
-                    <div 
-                      className="custom-select-trigger" 
+                    <div
+                      className="custom-select-trigger"
                       onClick={() => {
                         setCalendarMonth(new Date(date || new Date()));
                         setShowCalendar(true);
                         setPickerMode('single'); // Need to handle this
                       }}
-                      style={{ 
-                        background: 'var(--input-bg)', 
-                        border: '1.5px solid var(--border-color)', 
+                      style={{
+                        background: 'var(--input-bg)',
+                        border: '1.5px solid var(--border-color)',
                         borderRadius: '12px',
                         padding: '0.85rem 1rem',
                         display: 'flex',
@@ -1303,12 +1303,12 @@ function App() {
                   </div>
                   <div className="form-group half">
                     <label>Time</label>
-                    <div 
-                      className="custom-select-trigger" 
+                    <div
+                      className="custom-select-trigger"
                       onClick={() => setShowTimePicker(true)}
-                      style={{ 
-                        background: 'var(--input-bg)', 
-                        border: '1.5px solid var(--border-color)', 
+                      style={{
+                        background: 'var(--input-bg)',
+                        border: '1.5px solid var(--border-color)',
                         borderRadius: '12px',
                         padding: '0.85rem 1rem',
                         display: 'flex',
@@ -1367,14 +1367,14 @@ function App() {
             )}
 
             {currentView === 'Dashboard' && (
-              <div 
+              <div
                 className="refresh-container anim-fade-in"
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
               >
-                <div className={`pull-to-refresh ${(pullY > 0 || isRefreshing) ? 'showing' : ''}`} 
-                     style={{ transform: isRefreshing ? 'translateY(70px)' : `translateY(${Math.min(pullY, 70)}px)` }}>
+                <div className={`pull-to-refresh ${(pullY > 0 || isRefreshing) ? 'showing' : ''}`}
+                  style={{ transform: isRefreshing ? 'translateY(70px)' : `translateY(${Math.min(pullY, 70)}px)` }}>
                   <div className="refresh-icon"></div>
                   <div className="refresh-text">
                     {isRefreshing ? 'Refreshing...' : (pullY < 180 ? 'Pull more...' : 'Ready to refresh!')}
@@ -1383,11 +1383,11 @@ function App() {
 
                 <div className="dashboard-content" style={{ padding: '0 0.5rem' }}>
                   {selectedIds.length > 0 && (
-                    <div className="selection-toolbar anim-slide-up" style={{ 
-                      position: 'sticky', top: 0, zIndex: 110, background: 'var(--accent-color)', 
-                      color: 'white', padding: '0.75rem 1rem', borderRadius: '12px', 
+                    <div className="selection-toolbar anim-slide-up" style={{
+                      position: 'sticky', top: 0, zIndex: 110, background: 'var(--accent-color)',
+                      color: 'white', padding: '0.75rem 1rem', borderRadius: '12px',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      marginBottom: '1rem', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' 
+                      marginBottom: '1rem', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)'
                     }}>
                       <div style={{ fontWeight: 600 }}>{selectedIds.length} Selected</div>
                       <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -1430,223 +1430,223 @@ function App() {
                         </div>
                       )}
                       <div className="filters-grid">
-                            <div className="filter-item">
-                              <label>Categories</label>
-                              <div className="custom-select-wrapper">
-                                <div
-                                  className={`custom-select-trigger filter-select ${activeDropdown === 'catFilter' ? 'open' : ''}`}
-                                  onClick={() => setActiveDropdown('catFilter')}
-                                >
-                                  {categoryFilters.includes('All') 
-                                    ? 'All Categories' 
-                                    : categoryFilters.length === 1 
-                                      ? categoryFilters[0] 
-                                      : `${categoryFilters.length} Categories`}
-                                </div>
-                              {activeDropdown === 'catFilter' && (
-                                <div className="popup-dropdown-container">
-                                  <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                                  <ul className="custom-dropdown popup multi-select">
-                                    <div className="popup-header">Filter by Category</div>
-                                    <div className="popup-search-box" style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)' }}>
-                                      <input 
-                                        type="text" 
-                                        placeholder="Search categories..." 
-                                        value={catSearch}
-                                        onChange={(e) => setCatSearch(e.target.value)}
-                                        style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
-                                        onClick={(e) => e.stopPropagation()}
-                                      />
-                                    </div>
-                                    <li 
-                                      className={categoryFilters.includes('All') ? 'selected' : ''} 
-                                      onClick={() => toggleCategoryFilter('All')}
-                                    >
-                                      <span className="checkbox">{categoryFilters.includes('All') ? '✓' : ''}</span>
-                                      All Categories
-                                    </li>
-                                    {categories.filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase())).map(cat => (
-                                      <li 
-                                        key={cat} 
-                                        className={categoryFilters.includes(cat) ? 'selected' : ''} 
-                                        onClick={() => toggleCategoryFilter(cat)}
-                                      >
-                                        <span className="checkbox">{categoryFilters.includes(cat) ? '✓' : ''}</span>
-                                        {cat}
-                                      </li>
-                                    ))}
-                                    {(catSearch === '' || 'uncategorized'.includes(catSearch.toLowerCase())) && (
-                                      <li 
-                                        className={categoryFilters.includes('Uncategorized') ? 'selected' : ''} 
-                                        onClick={() => toggleCategoryFilter('Uncategorized')}
-                                      >
-                                        <span className="checkbox">{categoryFilters.includes('Uncategorized') ? '✓' : ''}</span>
-                                        Uncategorized
-                                      </li>
-                                    )}
-                                    {categories.filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase())).length === 0 && catSearch !== '' && !'uncategorized'.includes(catSearch.toLowerCase()) && (
-                                      <li style={{ padding: '1rem', color: 'var(--text-tertiary)', textAlign: 'center', pointerEvents: 'none' }}>No match found</li>
-                                    )}
-                                  </ul>
-                                </div>
-                              )}
+                        <div className="filter-item">
+                          <label>Categories</label>
+                          <div className="custom-select-wrapper">
+                            <div
+                              className={`custom-select-trigger filter-select ${activeDropdown === 'catFilter' ? 'open' : ''}`}
+                              onClick={() => setActiveDropdown('catFilter')}
+                            >
+                              {categoryFilters.includes('All')
+                                ? 'All Categories'
+                                : categoryFilters.length === 1
+                                  ? categoryFilters[0]
+                                  : `${categoryFilters.length} Categories`}
                             </div>
-                          </div>
-
-                      <div className="filter-item">
-                        <label>Payment Mode</label>
-                        <div className="custom-select-wrapper">
-                          <div
-                            className={`custom-select-trigger filter-select ${activeDropdown === 'payFilter' ? 'open' : ''}`}
-                            onClick={() => setActiveDropdown('payFilter')}
-                          >
-                            {paymentModeFilter.includes('All') 
-                              ? 'All Modes' 
-                              : paymentModeFilter.length === 1 
-                                ? paymentModeFilter[0] 
-                                : `${paymentModeFilter.length} Modes`}
-                           </div>
-                           {activeDropdown === 'payFilter' && (
-                             <div className="popup-dropdown-container">
-                               <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                               <ul className="custom-dropdown popup multi-select">
-                                 <div className="popup-header">Filter by Payment Mode</div>
-                                 {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified', ...banks.map(b => b.name)].map(mode => (
-                                   <li 
-                                     key={mode} 
-                                     className={paymentModeFilter.includes(mode) ? 'selected' : ''} 
-                                     onClick={() => togglePaymentModeFilter(mode)}
-                                   >
-                                     <span className="checkbox">{paymentModeFilter.includes(mode) ? '✓' : ''}</span>
-                                     {mode === 'All' ? 'All Modes' : mode}
-                                   </li>
-                                 ))}
-                               </ul>
-                             </div>
-                           )}
-                        </div>
-                      </div>
-
-                      <div className="filter-item">
-                        <label>Date Range</label>
-                        <div className="custom-select-wrapper">
-                          <div 
-                            className={`custom-select-trigger filter-select ${activeDropdown === 'dateFilter' ? 'open' : ''}`}
-                            onClick={() => {
-                              setActiveDropdown('dateFilter');
-                              setPickerMode('range');
-                            }}
-                          >
-                            {dateFilter === 'All' ? 'All Dates' : dateFilter}
-                          </div>
-                          {activeDropdown === 'dateFilter' && (
-                            <div className="popup-dropdown-container">
-                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                              <ul className="custom-dropdown popup">
-                                <div className="popup-header">Filter by Date</div>
-                                {['All', 'Today', 'Yesterday', 'Tomorrow', 'Last 7 Days', 'Last 30 Days', 'Last Month', 'Date Range'].map(range => (
-                                  <li key={range} onClick={() => {
-                                    setDateFilter(range);
-                                    setActiveDropdown(null);
-                                  }}>
-                                    {range === 'All' ? 'All Dates' : range}
+                            {activeDropdown === 'catFilter' && (
+                              <div className="popup-dropdown-container">
+                                <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                                <ul className="custom-dropdown popup multi-select">
+                                  <div className="popup-header">Filter by Category</div>
+                                  <div className="popup-search-box" style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)' }}>
+                                    <input
+                                      type="text"
+                                      placeholder="Search categories..."
+                                      value={catSearch}
+                                      onChange={(e) => setCatSearch(e.target.value)}
+                                      style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '8px', border: '1.5px solid var(--border-color)', background: 'var(--input-bg)', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  </div>
+                                  <li
+                                    className={categoryFilters.includes('All') ? 'selected' : ''}
+                                    onClick={() => toggleCategoryFilter('All')}
+                                  >
+                                    <span className="checkbox">{categoryFilters.includes('All') ? '✓' : ''}</span>
+                                    All Categories
                                   </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-
-                      {dateFilter === 'Date Range' && (
-                        <div className="filter-item full-width">
-                          <label>Select Range</label>
-                          <div className="custom-calendar-trigger" onClick={() => setShowCalendar(true)}>
-                            <div className="trigger-val">
-                              {startDate ? new Date(startDate).toLocaleDateString() : 'Start'} 
-                              <span className="trigger-sep">→</span> 
-                              {endDate ? new Date(endDate).toLocaleDateString() : 'End'}
-                            </div>
-                            <span className="cal-icon">📅</span>
+                                  {categories.filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase())).map(cat => (
+                                    <li
+                                      key={cat}
+                                      className={categoryFilters.includes(cat) ? 'selected' : ''}
+                                      onClick={() => toggleCategoryFilter(cat)}
+                                    >
+                                      <span className="checkbox">{categoryFilters.includes(cat) ? '✓' : ''}</span>
+                                      {cat}
+                                    </li>
+                                  ))}
+                                  {(catSearch === '' || 'uncategorized'.includes(catSearch.toLowerCase())) && (
+                                    <li
+                                      className={categoryFilters.includes('Uncategorized') ? 'selected' : ''}
+                                      onClick={() => toggleCategoryFilter('Uncategorized')}
+                                    >
+                                      <span className="checkbox">{categoryFilters.includes('Uncategorized') ? '✓' : ''}</span>
+                                      Uncategorized
+                                    </li>
+                                  )}
+                                  {categories.filter(cat => cat.toLowerCase().includes(catSearch.toLowerCase())).length === 0 && catSearch !== '' && !'uncategorized'.includes(catSearch.toLowerCase()) && (
+                                    <li style={{ padding: '1rem', color: 'var(--text-tertiary)', textAlign: 'center', pointerEvents: 'none' }}>No match found</li>
+                                  )}
+                                </ul>
+                              </div>
+                            )}
                           </div>
                         </div>
+
+                        <div className="filter-item">
+                          <label>Payment Mode</label>
+                          <div className="custom-select-wrapper">
+                            <div
+                              className={`custom-select-trigger filter-select ${activeDropdown === 'payFilter' ? 'open' : ''}`}
+                              onClick={() => setActiveDropdown('payFilter')}
+                            >
+                              {paymentModeFilter.includes('All')
+                                ? 'All Modes'
+                                : paymentModeFilter.length === 1
+                                  ? paymentModeFilter[0]
+                                  : `${paymentModeFilter.length} Modes`}
+                            </div>
+                            {activeDropdown === 'payFilter' && (
+                              <div className="popup-dropdown-container">
+                                <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                                <ul className="custom-dropdown popup multi-select">
+                                  <div className="popup-header">Filter by Payment Mode</div>
+                                  {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified', ...banks.map(b => b.name)].map(mode => (
+                                    <li
+                                      key={mode}
+                                      className={paymentModeFilter.includes(mode) ? 'selected' : ''}
+                                      onClick={() => togglePaymentModeFilter(mode)}
+                                    >
+                                      <span className="checkbox">{paymentModeFilter.includes(mode) ? '✓' : ''}</span>
+                                      {mode === 'All' ? 'All Modes' : mode}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="filter-item">
+                          <label>Date Range</label>
+                          <div className="custom-select-wrapper">
+                            <div
+                              className={`custom-select-trigger filter-select ${activeDropdown === 'dateFilter' ? 'open' : ''}`}
+                              onClick={() => {
+                                setActiveDropdown('dateFilter');
+                                setPickerMode('range');
+                              }}
+                            >
+                              {dateFilter === 'All' ? 'All Dates' : dateFilter}
+                            </div>
+                            {activeDropdown === 'dateFilter' && (
+                              <div className="popup-dropdown-container">
+                                <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                                <ul className="custom-dropdown popup">
+                                  <div className="popup-header">Filter by Date</div>
+                                  {['All', 'Today', 'Yesterday', 'Tomorrow', 'Last 7 Days', 'Last 30 Days', 'Last Month', 'Date Range'].map(range => (
+                                    <li key={range} onClick={() => {
+                                      setDateFilter(range);
+                                      setActiveDropdown(null);
+                                    }}>
+                                      {range === 'All' ? 'All Dates' : range}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+
+                        {dateFilter === 'Date Range' && (
+                          <div className="filter-item full-width">
+                            <label>Select Range</label>
+                            <div className="custom-calendar-trigger" onClick={() => setShowCalendar(true)}>
+                              <div className="trigger-val">
+                                {startDate ? new Date(startDate).toLocaleDateString() : 'Start'}
+                                <span className="trigger-sep">→</span>
+                                {endDate ? new Date(endDate).toLocaleDateString() : 'End'}
+                              </div>
+                              <span className="cal-icon">📅</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {((categoryFilters.length > 0 && !categoryFilters.includes('All')) || (paymentModeFilter.length > 0 && !paymentModeFilter.includes('All')) || dateFilter !== 'All' || searchQuery !== '') && (
+                        <button
+                          type="button"
+                          className="clear-filters-btn"
+                          onClick={() => {
+                            setCategoryFilters(['All']);
+                            setPaymentModeFilter(['All']);
+                            setDateFilter('All');
+                            setSearchQuery('');
+                            setStartDate('');
+                            setEndDate('');
+                          }}
+                        >
+                          Clear All Filters
+                        </button>
                       )}
                     </div>
 
-                     {((categoryFilters.length > 0 && !categoryFilters.includes('All')) || (paymentModeFilter.length > 0 && !paymentModeFilter.includes('All')) || dateFilter !== 'All' || searchQuery !== '') && (
-                      <button
-                        type="button"
-                        className="clear-filters-btn"
-                        onClick={() => {
-                          setCategoryFilters(['All']);
-                          setPaymentModeFilter(['All']);
-                          setDateFilter('All');
-                          setSearchQuery('');
-                          setStartDate('');
-                          setEndDate('');
-                        }}
-                      >
-                        Clear All Filters
-                      </button>
-                    )}
-                  </div>
+                    <h2>Filtered Expenses</h2>
+                    {sortedExpenses.length === 0 ? (
+                      <p className="no-expenses">No expenses found.</p>
+                    ) : (
+                      sortedExpenses.map(expense => (
+                        <div key={expense.id} className={`expense-card ${selectedIds.includes(expense.id) ? 'selected' : ''}`} onClick={() => {
+                          // If we are already in selection mode, clicking the card toggles it
+                          if (selectedIds.length > 0) {
+                            toggleSelection(expense.id);
+                          }
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
+                            <div
+                              className={`selection-checkbox ${selectedIds.includes(expense.id) ? 'checked' : ''}`}
+                              onClick={(e) => { e.stopPropagation(); toggleSelection(expense.id); }}
+                            >
+                              {selectedIds.includes(expense.id) && '✓'}
+                            </div>
 
-                  <h2>Filtered Expenses</h2>
-                  {sortedExpenses.length === 0 ? (
-                    <p className="no-expenses">No expenses found.</p>
-                  ) : (
-                    sortedExpenses.map(expense => (
-                      <div key={expense.id} className={`expense-card ${selectedIds.includes(expense.id) ? 'selected' : ''}`} onClick={() => {
-                        // If we are already in selection mode, clicking the card toggles it
-                        if (selectedIds.length > 0) {
-                          toggleSelection(expense.id);
-                        }
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', width: '100%' }}>
-                          <div 
-                            className={`selection-checkbox ${selectedIds.includes(expense.id) ? 'checked' : ''}`}
-                            onClick={(e) => { e.stopPropagation(); toggleSelection(expense.id); }}
-                          >
-                            {selectedIds.includes(expense.id) && '✓'}
-                          </div>
-                          
-                          <div className="expense-info" style={{ flex: 1 }}>
-                            <h3 className="expense-desc">{expense.description}</h3>
-                            <span className="expense-datetime">
-                              {expense.category && <span className="expense-category-badge">{expense.category}</span>}
-                              {expense.paymentMode && expense.paymentMode !== 'Not Specified' && (
-                                <span className="expense-payment-badge">{expense.paymentMode}</span>
-                              )}
-                              <div style={{ width: '100%', height: '4px' }}></div>
-                              {new Date(expense.date).toLocaleDateString('en-US', { weekday: 'long' })}, {expense.date.split('-').reverse().join('/')} • {formatTime(expense.time)}
-                              {expense.remark && (
-                                <div className="expense-remark">
-                                  <span className="remark-icon">📝</span> {expense.remark}
-                                </div>
-                              )}
-                            </span>
-                          </div>
-                          
-                          <div className="expense-action" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                            <span className="expense-amount">₹{expense.amount.toFixed(2)}</span>
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                              {!selectedIds.length && (
-                                <>
-                                  <button type="button" onClick={(e) => { e.stopPropagation(); handleEdit(expense); }} style={{ background: '#cbd5e0', color: '#2d3748', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
-                                  <button type="button" onClick={(e) => { e.stopPropagation(); setDeleteId(expense.id); }} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
-                                </>
-                              )}
+                            <div className="expense-info" style={{ flex: 1 }}>
+                              <h3 className="expense-desc">{expense.description}</h3>
+                              <span className="expense-datetime">
+                                {expense.category && <span className="expense-category-badge">{expense.category}</span>}
+                                {expense.paymentMode && expense.paymentMode !== 'Not Specified' && (
+                                  <span className="expense-payment-badge">{expense.paymentMode}</span>
+                                )}
+                                <div style={{ width: '100%', height: '4px' }}></div>
+                                {new Date(expense.date).toLocaleDateString('en-US', { weekday: 'long' })}, {expense.date.split('-').reverse().join('/')} • {formatTime(expense.time)}
+                                {expense.remark && (
+                                  <div className="expense-remark">
+                                    <span className="remark-icon">📝</span> {expense.remark}
+                                  </div>
+                                )}
+                              </span>
+                            </div>
+
+                            <div className="expense-action" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                              <span className="expense-amount">₹{expense.amount.toFixed(2)}</span>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {!selectedIds.length && (
+                                  <>
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); handleEdit(expense); }} style={{ background: '#cbd5e0', color: '#2d3748', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
+                                    <button type="button" onClick={(e) => { e.stopPropagation(); setDeleteId(expense.id); }} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
             {currentView === 'Backup & Restore' && (
               <div className="backup-container">
@@ -1669,14 +1669,14 @@ function App() {
               </div>
             )}
             {currentView === 'Banks' && (
-              <div 
+              <div
                 className="refresh-container anim-fade-in"
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
               >
-                <div className={`pull-to-refresh ${(pullY > 0 || isRefreshing) ? 'showing' : ''}`} 
-                     style={{ transform: isRefreshing ? 'translateY(70px)' : `translateY(${Math.min(pullY, 70)}px)` }}>
+                <div className={`pull-to-refresh ${(pullY > 0 || isRefreshing) ? 'showing' : ''}`}
+                  style={{ transform: isRefreshing ? 'translateY(70px)' : `translateY(${Math.min(pullY, 70)}px)` }}>
                   <div className="refresh-icon"></div>
                   <div className="refresh-text">
                     {isRefreshing ? 'Refreshing...' : (pullY < 180 ? 'Pull more...' : 'Ready to refresh!')}
@@ -1684,52 +1684,52 @@ function App() {
                 </div>
 
                 <div className="banks-container" style={{ padding: '0 0.5rem' }}>
-                <div className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h2 style={{ margin: 0 }}>Banks & Accounts</h2>
-                  <button className="add-bank-btn" onClick={() => setShowBankModal(true)}>+ Add Bank</button>
-                </div>
-
-                {banks.length > 0 && (
-                  <div className="total-bank-card anim-slide-up" style={{ 
-                    background: 'var(--accent-color)', 
-                    padding: '1.25rem', 
-                    borderRadius: '16px', 
-                    marginBottom: '1.5rem', 
-                    color: 'white', 
-                    boxShadow: '0 8px 16px rgba(16, 185, 129, 0.2)' 
-                  }}>
-                    <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Total Available Balance</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 700, marginTop: '0.25rem' }}>
-                      ₹{banks.reduce((sum, b) => sum + b.balance, 0).toFixed(2)}
-                    </div>
+                  <div className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h2 style={{ margin: 0 }}>Banks & Accounts</h2>
+                    <button className="add-bank-btn" onClick={() => setShowBankModal(true)}>+ Add Bank</button>
                   </div>
-                )}
 
-                {banks.length === 0 ? (
-                  <div className="empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-secondary)', borderRadius: '20px', border: '1px dashed var(--border-color)' }}>
-                    <p style={{ color: 'var(--text-tertiary)', fontSize: '1.1rem' }}>No bank accounts added yet.</p>
-                    <button className="add-bank-btn" style={{ marginTop: '1rem' }} onClick={() => setShowBankModal(true)}>Create Your First Account</button>
-                  </div>
-                ) : (
-                  <div className="banks-list">
-                    {banks.map(bank => (
-                      <div key={bank.id} className="bank-list-item shadow-sm" onClick={() => { setViewingBankId(bank.id); setCurrentView('Bank Detail'); }}>
-                        <div className="bank-info">
-                          <h3>{bank.name}</h3>
-                          <span className="bank-id-tag">Account ID: {bank.id.substring(0, 8)}</span>
-                        </div>
-                        <div className="bank-item-balance">
-                          <div className="label">Balance</div>
-                          <div className="amount" style={{ color: '#10b981', fontWeight: 700 }}>₹{bank.balance.toFixed(2)}</div>
-                        </div>
-                        <div className="bank-chevron">›</div>
+                  {banks.length > 0 && (
+                    <div className="total-bank-card anim-slide-up" style={{
+                      background: 'var(--accent-color)',
+                      padding: '1.25rem',
+                      borderRadius: '16px',
+                      marginBottom: '1.5rem',
+                      color: 'white',
+                      boxShadow: '0 8px 16px rgba(16, 185, 129, 0.2)'
+                    }}>
+                      <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Total Available Balance</div>
+                      <div style={{ fontSize: '1.6rem', fontWeight: 700, marginTop: '0.25rem' }}>
+                        ₹{banks.reduce((sum, b) => sum + b.balance, 0).toFixed(2)}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  )}
+
+                  {banks.length === 0 ? (
+                    <div className="empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-secondary)', borderRadius: '20px', border: '1px dashed var(--border-color)' }}>
+                      <p style={{ color: 'var(--text-tertiary)', fontSize: '1.1rem' }}>No bank accounts added yet.</p>
+                      <button className="add-bank-btn" style={{ marginTop: '1rem' }} onClick={() => setShowBankModal(true)}>Create Your First Account</button>
+                    </div>
+                  ) : (
+                    <div className="banks-list">
+                      {banks.map(bank => (
+                        <div key={bank.id} className="bank-list-item shadow-sm" onClick={() => { setViewingBankId(bank.id); setCurrentView('Bank Detail'); }}>
+                          <div className="bank-info">
+                            <h3>{bank.name}</h3>
+                            <span className="bank-id-tag">Account ID: {bank.id.substring(0, 8)}</span>
+                          </div>
+                          <div className="bank-item-balance">
+                            <div className="label">Balance</div>
+                            <div className="amount" style={{ color: '#10b981', fontWeight: 700 }}>₹{bank.balance.toFixed(2)}</div>
+                          </div>
+                          <div className="bank-chevron">›</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
             {currentView === 'Bank Detail' && viewingBankId && (
               <div className="bank-detail-view anim-fade-in">
@@ -1752,7 +1752,7 @@ function App() {
                           </div>
                         </div>
                         <div className="hero-actions">
-                          <button 
+                          <button
                             className="cash-in-btn large"
                             onClick={() => {
                               setSelectedBankId(bank.id);
@@ -1769,16 +1769,16 @@ function App() {
                           <h2 className="section-title">Account Statement</h2>
                           <div className="statement-controls">
                             <div className="statement-search">
-                              <input 
-                                type="text" 
-                                placeholder="Search here..." 
+                              <input
+                                type="text"
+                                placeholder="Search here..."
                                 value={bankSearchQuery}
                                 onChange={e => setBankSearchQuery(e.target.value)}
                               />
                             </div>
                             <div className="statement-filters-row">
                               <div className="custom-select-wrapper" style={{ flex: 1 }}>
-                                <div 
+                                <div
                                   className={`custom-select-trigger ${activeDropdown === 'bankTypeFilter' ? 'open' : ''}`}
                                   onClick={() => setActiveDropdown('bankTypeFilter')}
                                 >
@@ -1798,7 +1798,7 @@ function App() {
                               </div>
 
                               <div className="custom-select-wrapper" style={{ flex: 1 }}>
-                                <div 
+                                <div
                                   className={`custom-select-trigger ${activeDropdown === 'bankDateFilter' ? 'open' : ''}`}
                                   onClick={() => setActiveDropdown('bankDateFilter')}
                                 >
@@ -1822,19 +1822,19 @@ function App() {
                             </div>
                             {bankDateFilter === 'Custom' && (
                               <div className="statement-filters-row anim-fade-in" style={{ marginTop: '0.5rem' }}>
-                                <input 
-                                  type="date" 
-                                  className="modal-input" 
-                                  value={bankStartDate} 
-                                  onChange={e => setBankStartDate(e.target.value)} 
-                                  style={{ flex: 1, padding: '0.5rem' }} 
+                                <input
+                                  type="date"
+                                  className="modal-input"
+                                  value={bankStartDate}
+                                  onChange={e => setBankStartDate(e.target.value)}
+                                  style={{ flex: 1, padding: '0.5rem' }}
                                 />
-                                <input 
-                                  type="date" 
-                                  className="modal-input" 
-                                  value={bankEndDate} 
-                                  onChange={e => setBankEndDate(e.target.value)} 
-                                  style={{ flex: 1, padding: '0.5rem' }} 
+                                <input
+                                  type="date"
+                                  className="modal-input"
+                                  value={bankEndDate}
+                                  onChange={e => setBankEndDate(e.target.value)}
+                                  style={{ flex: 1, padding: '0.5rem' }}
                                 />
                               </div>
                             )}
@@ -1844,7 +1844,7 @@ function App() {
                         <div className="statement-full-list">
                           {(() => {
                             let filteredList = bankTransactions.filter(t => t.bankId === bank.id);
-                            
+
                             // Type Filter
                             if (bankTypeFilter !== 'All') {
                               filteredList = filteredList.filter(t => t.type === bankTypeFilter);
@@ -1853,36 +1853,36 @@ function App() {
                             // Search Filter
                             if (bankSearchQuery.trim() !== '') {
                               const q = bankSearchQuery.toLowerCase();
-                              filteredList = filteredList.filter(t => 
-                                t.description.toLowerCase().includes(q) || 
+                              filteredList = filteredList.filter(t =>
+                                t.description.toLowerCase().includes(q) ||
                                 t.category?.toLowerCase().includes(q)
                               );
                             }
 
                             // Date Filter
                             if (bankDateFilter !== 'All') {
-                                const today = new Date();
-                                const todayStr = getLocalDateStr(today);
-                                const yesterday = new Date(today);
-                                yesterday.setDate(yesterday.getDate() - 1);
-                                const yesterdayStr = getLocalDateStr(yesterday);
-                                const sevenDaysAgo = new Date(today);
-                                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                                const thirtyDaysAgo = new Date(today);
-                                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                              const today = new Date();
+                              const todayStr = getLocalDateStr(today);
+                              const yesterday = new Date(today);
+                              yesterday.setDate(yesterday.getDate() - 1);
+                              const yesterdayStr = getLocalDateStr(yesterday);
+                              const sevenDaysAgo = new Date(today);
+                              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                              const thirtyDaysAgo = new Date(today);
+                              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-                                filteredList = filteredList.filter(t => {
-                                    if (bankDateFilter === 'Today') return t.date === todayStr;
-                                    if (bankDateFilter === 'Yesterday') return t.date === yesterdayStr;
-                                    if (bankDateFilter === 'Last 7 Days') return t.date >= getLocalDateStr(sevenDaysAgo);
-                                    if (bankDateFilter === 'Last 30 Days') return t.date >= getLocalDateStr(thirtyDaysAgo);
-                                    if (bankDateFilter === 'Custom') {
-                                      if (bankStartDate && t.date < bankStartDate) return false;
-                                      if (bankEndDate && t.date > bankEndDate) return false;
-                                      return true;
-                                    }
-                                    return true;
-                                });
+                              filteredList = filteredList.filter(t => {
+                                if (bankDateFilter === 'Today') return t.date === todayStr;
+                                if (bankDateFilter === 'Yesterday') return t.date === yesterdayStr;
+                                if (bankDateFilter === 'Last 7 Days') return t.date >= getLocalDateStr(sevenDaysAgo);
+                                if (bankDateFilter === 'Last 30 Days') return t.date >= getLocalDateStr(thirtyDaysAgo);
+                                if (bankDateFilter === 'Custom') {
+                                  if (bankStartDate && t.date < bankStartDate) return false;
+                                  if (bankEndDate && t.date > bankEndDate) return false;
+                                  return true;
+                                }
+                                return true;
+                              });
                             }
 
                             if (filteredList.length === 0) {
@@ -1893,7 +1893,7 @@ function App() {
                               );
                             }
 
-                            return filteredList.map(trx => (
+                             return filteredList.map(trx => (
                               <div key={trx.id} className={`statement-card anim-slide-up ${trx.type}`}>
                                 <div className="card-top-header">
                                   <div className="date-block">
@@ -1914,11 +1914,9 @@ function App() {
                                     </div>
                                   </div>
                                 </div>
-                                <div className="card-footer">
-                                   <div className="trx-actions">
-                                      <button className="icon-action edit" onClick={(e) => { e.stopPropagation(); startEditDeposit(trx); }}>✎ Edit</button>
-                                      <button className="icon-action delete" onClick={(e) => { e.stopPropagation(); deleteBankTransaction(trx); }}>✕ Delete</button>
-                                   </div>
+                                <div className="card-actions-row">
+                                  <button className="icon-action edit" onClick={(e) => { e.stopPropagation(); startEditDeposit(trx); }}>✎ Edit</button>
+                                  <button className="icon-action delete" onClick={(e) => { e.stopPropagation(); deleteBankTransaction(trx); }}>✕ Delete</button>
                                 </div>
                               </div>
                             ));
@@ -1937,7 +1935,7 @@ function App() {
                   <h2 style={{ margin: 0 }}>Auto Pay (SIP)</h2>
                   <button className="add-bank-btn" onClick={() => { resetAutoPayForm(); setCurrentView('Auto Pay Setup'); }}>+ Set Auto Pay</button>
                 </div>
-                
+
                 {autoPays.length === 0 ? (
                   <div className="empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-secondary)', borderRadius: '20px', border: '1px dashed var(--border-color)' }}>
                     <p style={{ color: 'var(--text-tertiary)', fontSize: '1.1rem' }}>No automated payments scheduled.</p>
@@ -1950,19 +1948,19 @@ function App() {
                       return (
                         <div key={ap.id} className="autopay-card shadow-sm">
                           <div className="card-top">
-                             <div className="card-info">
-                               <h3>{ap.name}</h3>
-                               <p className="ap-meta">
-                                 {ap.frequencyValue} per {ap.frequencyUnit?.toLowerCase()} • {ap.time} • {ap.category}
-                               </p>
-                             </div>
-                             <div className="card-amount">₹{ap.amount.toFixed(2)}</div>
+                            <div className="card-info">
+                              <h3>{ap.name}</h3>
+                              <p className="ap-meta">
+                                {ap.frequencyValue} per {ap.frequencyUnit?.toLowerCase()} • {ap.time} • {ap.category}
+                              </p>
+                            </div>
+                            <div className="card-amount">₹{ap.amount.toFixed(2)}</div>
                           </div>
                           <div className="card-bottom">
                             <span className="linked-bank">From: {bank ? bank.name : 'Unknown Bank'}</span>
                             <div className="card-actions">
-                               <button className="row-btn edit" onClick={() => startEditAutoPay(ap)}>✎</button>
-                               <button className="row-btn delete" onClick={() => deleteAutoPay(ap.id)}>✕</button>
+                              <button className="row-btn edit" onClick={() => startEditAutoPay(ap)}>✎</button>
+                              <button className="row-btn delete" onClick={() => deleteAutoPay(ap.id)}>✕</button>
                             </div>
                           </div>
                         </div>
@@ -1983,125 +1981,125 @@ function App() {
                 <form className="modal-form" onSubmit={addAutoPay}>
                   <div className="ap-setup-section">
                     <div className="modal-section-title">General Details</div>
-                      <div className="form-group">
-                        <label>📝 Auto Pay Name</label>
-                        <input 
-                          type="text" 
-                          className="modal-input" 
-                          placeholder="e.g. House Rent, Monthly Gym" 
-                          value={autoPayName} 
-                          onChange={e => setAutoPayName(e.target.value)} 
-                          required 
-                        />
-                      </div>
-                      <div className="form-row">
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label>💰 Amount</label>
-                          <div className="modal-input-container">
-                            <input 
-                              type="number" 
-                              className="modal-input" 
-                              placeholder="0.00" 
-                              value={autoPayAmount} 
-                              onChange={e => setAutoPayAmount(e.target.value)} 
-                              required 
-                            />
-                          </div>
-                        </div>
-                        <div className="form-group" style={{ flex: 1.2 }}>
-                          <label>🔄 Frequency</label>
-                          <div className="combined-freq-input">
-                            <input 
-                              type="number" 
-                              className="freq-number-input" 
-                              value={autoPayFreqValue} 
-                              onChange={e => setAutoPayFreqValue(e.target.value)} 
-                              min="1"
-                              required 
-                            />
-                            <div className={`custom-select-trigger freq-unit-selector ${activeDropdown === 'apFreqUnit' ? 'open' : ''}`} onClick={() => setActiveDropdown('apFreqUnit')}>
-                              per {autoPayFreqUnit?.toLowerCase()}
-                            </div>
-                          </div>
-                          {activeDropdown === 'apFreqUnit' && (
-                            <div className="popup-dropdown-container">
-                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                              <ul className="custom-dropdown popup">
-                                <li onClick={() => { setAutoPayFreqUnit('Minute'); setActiveDropdown(null); }}>per minute</li>
-                                <li onClick={() => { setAutoPayFreqUnit('Hour'); setActiveDropdown(null); }}>per hour</li>
-                                <li onClick={() => { setAutoPayFreqUnit('Day'); setActiveDropdown(null); }}>per day</li>
-                                <li onClick={() => { setAutoPayFreqUnit('Month'); setActiveDropdown(null); }}>per month</li>
-                                <li onClick={() => { setAutoPayFreqUnit('Year'); setActiveDropdown(null); }}>per year</li>
-                              </ul>
-                            </div>
-                          )}
+                    <div className="form-group">
+                      <label>📝 Auto Pay Name</label>
+                      <input
+                        type="text"
+                        className="modal-input"
+                        placeholder="e.g. House Rent, Monthly Gym"
+                        value={autoPayName}
+                        onChange={e => setAutoPayName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>💰 Amount</label>
+                        <div className="modal-input-container">
+                          <input
+                            type="number"
+                            className="modal-input"
+                            placeholder="0.00"
+                            value={autoPayAmount}
+                            onChange={e => setAutoPayAmount(e.target.value)}
+                            required
+                          />
                         </div>
                       </div>
+                      <div className="form-group" style={{ flex: 1.2 }}>
+                        <label>🔄 Frequency</label>
+                        <div className="combined-freq-input">
+                          <input
+                            type="number"
+                            className="freq-number-input"
+                            value={autoPayFreqValue}
+                            onChange={e => setAutoPayFreqValue(e.target.value)}
+                            min="1"
+                            required
+                          />
+                          <div className={`custom-select-trigger freq-unit-selector ${activeDropdown === 'apFreqUnit' ? 'open' : ''}`} onClick={() => setActiveDropdown('apFreqUnit')}>
+                            per {autoPayFreqUnit?.toLowerCase()}
+                          </div>
+                        </div>
+                        {activeDropdown === 'apFreqUnit' && (
+                          <div className="popup-dropdown-container">
+                            <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                            <ul className="custom-dropdown popup">
+                              <li onClick={() => { setAutoPayFreqUnit('Minute'); setActiveDropdown(null); }}>per minute</li>
+                              <li onClick={() => { setAutoPayFreqUnit('Hour'); setActiveDropdown(null); }}>per hour</li>
+                              <li onClick={() => { setAutoPayFreqUnit('Day'); setActiveDropdown(null); }}>per day</li>
+                              <li onClick={() => { setAutoPayFreqUnit('Month'); setActiveDropdown(null); }}>per month</li>
+                              <li onClick={() => { setAutoPayFreqUnit('Year'); setActiveDropdown(null); }}>per year</li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="ap-setup-section">
                     <div className="modal-section-title">Schedule & Account</div>
-                      <div className="form-group">
-                        <label>📂 Category</label>
-                        <div className="custom-select-wrapper">
-                          <div className={`custom-select-trigger ${activeDropdown === 'apCat' ? 'open' : ''}`} onClick={() => setActiveDropdown('apCat')}>
-                            {autoPayCat || 'Select Category'}
+                    <div className="form-group">
+                      <label>📂 Category</label>
+                      <div className="custom-select-wrapper">
+                        <div className={`custom-select-trigger ${activeDropdown === 'apCat' ? 'open' : ''}`} onClick={() => setActiveDropdown('apCat')}>
+                          {autoPayCat || 'Select Category'}
+                        </div>
+                        {activeDropdown === 'apCat' && (
+                          <div className="popup-dropdown-container">
+                            <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                            <ul className="custom-dropdown popup">
+                              <div className="popup-header">Select Category</div>
+                              {categories.map(cat => (
+                                <li key={cat} onClick={() => { setAutoPayCat(cat); setActiveDropdown(null); }}>{cat}</li>
+                              ))}
+                            </ul>
                           </div>
-                          {activeDropdown === 'apCat' && (
-                            <div className="popup-dropdown-container">
-                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                              <ul className="custom-dropdown popup">
-                                <div className="popup-header">Select Category</div>
-                                {categories.map(cat => (
-                                  <li key={cat} onClick={() => { setAutoPayCat(cat); setActiveDropdown(null); }}>{cat}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
-                      <div className="form-row">
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label>⏰ Time</label>
-                          <input 
-                            type="time" 
-                            className="modal-input" 
-                            value={autoPayTime} 
-                            onChange={e => setAutoPayTime(e.target.value)} 
-                            required 
-                          />
-                        </div>
-                        <div className="form-group" style={{ flex: 1 }}>
-                          <label>📅 Start Date</label>
-                          <input 
-                            type="date" 
-                            className="modal-input" 
-                            value={autoPayStartDate} 
-                            onChange={e => setAutoPayStartDate(e.target.value)} 
-                          />
-                        </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>⏰ Time</label>
+                        <input
+                          type="time"
+                          className="modal-input"
+                          value={autoPayTime}
+                          onChange={e => setAutoPayTime(e.target.value)}
+                          required
+                        />
                       </div>
-                      <div className="form-group">
-                        <label>🏦 Link Bank/Account</label>
-                        <div className="custom-select-wrapper">
-                          <div className={`custom-select-trigger ${activeDropdown === 'apBank' ? 'open' : ''}`} onClick={() => setActiveDropdown('apBank')}>
-                            {banks.find(b => b.id === autoPayBankId)?.name || 'Select Account'}
+                      <div className="form-group" style={{ flex: 1 }}>
+                        <label>📅 Start Date</label>
+                        <input
+                          type="date"
+                          className="modal-input"
+                          value={autoPayStartDate}
+                          onChange={e => setAutoPayStartDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>🏦 Link Bank/Account</label>
+                      <div className="custom-select-wrapper">
+                        <div className={`custom-select-trigger ${activeDropdown === 'apBank' ? 'open' : ''}`} onClick={() => setActiveDropdown('apBank')}>
+                          {banks.find(b => b.id === autoPayBankId)?.name || 'Select Account'}
+                        </div>
+                        {activeDropdown === 'apBank' && (
+                          <div className="popup-dropdown-container">
+                            <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                            <ul className="custom-dropdown popup">
+                              <div className="popup-header">Link Account</div>
+                              {banks.map(bank => (
+                                <li key={bank.id} onClick={() => { setAutoPayBankId(bank.id); setActiveDropdown(null); }}>
+                                  {bank.name} (₹{bank.balance.toFixed(2)})
+                                </li>
+                              ))}
+                            </ul>
                           </div>
-                          {activeDropdown === 'apBank' && (
-                            <div className="popup-dropdown-container">
-                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                              <ul className="custom-dropdown popup">
-                                <div className="popup-header">Link Account</div>
-                                {banks.map(bank => (
-                                  <li key={bank.id} onClick={() => { setAutoPayBankId(bank.id); setActiveDropdown(null); }}>
-                                    {bank.name} (₹{bank.balance.toFixed(2)})
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
+                    </div>
                   </div>
                   <button type="submit" className="submit-btn" style={{ padding: '1.25rem' }}>{editingAutoPayId ? 'Update' : 'Schedule'} Auto Pay</button>
                 </form>
@@ -2202,13 +2200,13 @@ function App() {
           <div className="modal category-modal">
             <div className="modal-header">
               <h3>Manage Deposit Categories</h3>
-              <button 
-                className="close-btn" 
-                style={{ position: 'static', color: 'var(--text-primary)' }} 
-                onClick={() => { 
-                  setIsDepositCategoryModalOpen(false); 
-                  setEditingDepositCategoryIdx(null); 
-                  setNewDepositCategory(''); 
+              <button
+                className="close-btn"
+                style={{ position: 'static', color: 'var(--text-primary)' }}
+                onClick={() => {
+                  setIsDepositCategoryModalOpen(false);
+                  setEditingDepositCategoryIdx(null);
+                  setNewDepositCategory('');
                 }}
               >
                 &times;
@@ -2257,22 +2255,22 @@ function App() {
             <form onSubmit={addBank}>
               <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
                 <label>Bank Name</label>
-                <input 
-                  type="text" 
-                  value={bankName} 
-                  onChange={e => setBankName(e.target.value)} 
-                  placeholder="e.g. HDFC Bank" 
+                <input
+                  type="text"
+                  value={bankName}
+                  onChange={e => setBankName(e.target.value)}
+                  placeholder="e.g. HDFC Bank"
                   className="modal-input"
-                  required 
+                  required
                 />
               </div>
               <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
                 <label>Initial Balance (₹)</label>
-                <input 
-                  type="number" 
-                  value={bankBalance} 
-                  onChange={e => setBankBalance(e.target.value)} 
-                  placeholder="0.00" 
+                <input
+                  type="number"
+                  value={bankBalance}
+                  onChange={e => setBankBalance(e.target.value)}
+                  placeholder="0.00"
                   className="modal-input"
                 />
               </div>
@@ -2295,11 +2293,11 @@ function App() {
             <form onSubmit={handleDeposit}>
               <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
                 <label>Deposit Amount (₹)</label>
-                <input 
-                  type="number" 
-                  value={depositAmount} 
-                  onChange={e => setDepositAmount(e.target.value)} 
-                  placeholder="0.00" 
+                <input
+                  type="number"
+                  value={depositAmount}
+                  onChange={e => setDepositAmount(e.target.value)}
+                  placeholder="0.00"
                   className="modal-input"
                   required
                   autoFocus
@@ -2307,11 +2305,11 @@ function App() {
               </div>
               <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
                 <label>Description (Optional)</label>
-                <input 
-                  type="text" 
-                  value={depositDescription} 
-                  onChange={e => setDepositDescription(e.target.value)} 
-                  placeholder="e.g. Salary, Gift" 
+                <input
+                  type="text"
+                  value={depositDescription}
+                  onChange={e => setDepositDescription(e.target.value)}
+                  placeholder="e.g. Salary, Gift"
                   className="modal-input"
                 />
               </div>
@@ -2370,10 +2368,10 @@ function App() {
           <div className="num-pad-overlay" onClick={() => setShowNumPad(false)}></div>
           <div className="num-pad-sheet quick-add-sheet">
             <div className="quick-add-header">
-              <button 
-                type="button" 
-                className="close-btn" 
-                onClick={() => { setShowNumPad(false); setIsQuickAddMode(false); }} 
+              <button
+                type="button"
+                className="close-btn"
+                onClick={() => { setShowNumPad(false); setIsQuickAddMode(false); }}
                 style={{ position: 'static', color: 'var(--text-secondary)' }}
               >
                 &times;
@@ -2383,25 +2381,25 @@ function App() {
 
             {isQuickAddMode && (
               <div className="quick-add-input-group">
-                <input 
-                  type="text" 
-                  className="quick-add-input" 
-                  placeholder="What for? (Description)" 
+                <input
+                  type="text"
+                  className="quick-add-input"
+                  placeholder="What for? (Description)"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   autoFocus
                 />
-                
+
                 <div className="quick-add-category-selector">
-                  <div 
+                  <div
                     className={`quick-add-category-item ${category === '' ? 'selected' : ''}`}
                     onClick={() => setCategory('')}
                   >
                     Other
                   </div>
                   {categories.map(cat => (
-                    <div 
-                      key={cat} 
+                    <div
+                      key={cat}
                       className={`quick-add-category-item ${category === cat ? 'selected' : ''}`}
                       onClick={() => setCategory(cat)}
                     >
@@ -2424,9 +2422,9 @@ function App() {
                 </button>
               ))}
               {isQuickAddMode ? (
-                <button 
-                  type="button" 
-                  className="quick-add-save-btn" 
+                <button
+                  type="button"
+                  className="quick-add-save-btn"
                   onClick={(e) => {
                     const finalAmount = evaluateExpression(amount);
                     if (finalAmount === '0' || isNaN(parseFloat(finalAmount))) {
@@ -2445,9 +2443,9 @@ function App() {
                   Save Entry
                 </button>
               ) : (
-                <button 
-                  type="button" 
-                  className="num-pad-key done" 
+                <button
+                  type="button"
+                  className="num-pad-key done"
                   onClick={() => {
                     setAmount(evaluateExpression(amount));
                     setShowNumPad(false);
@@ -2466,21 +2464,21 @@ function App() {
         <div className="modal-overlay" onClick={() => setShowCalendar(false)}>
           <div className="calendar-modal-content" onClick={e => e.stopPropagation()}>
             <div className="calendar-header">
-              <button 
+              <button
                 type="button"
                 onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() - 1, 1))}
               >
                 &lt;
               </button>
               <h3>{calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
-              <button 
+              <button
                 type="button"
                 onClick={() => setCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 1))}
               >
                 &gt;
               </button>
             </div>
-            
+
             <div className="calendar-grid">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className="calendar-weekday">{d}</div>)}
               {(() => {
@@ -2495,14 +2493,14 @@ function App() {
                   const isEnd = pickerMode === 'range' ? dateStr === endDate : false;
                   const hasSelection = pickerMode === 'range' ? !!(startDate && endDate) : !!date;
                   const isInRange = pickerMode === 'range' ? (startDate && endDate && dateStr > startDate && dateStr < endDate) : false;
-                  
+
                   const todayObj = new Date();
                   const todayStr = formatCalDate(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
                   const isToday = dateStr === todayStr;
 
                   cells.push(
-                    <div 
-                      key={d} 
+                    <div
+                      key={d}
                       className={`calendar-day ${isStart ? 'range-start' : ''} ${isEnd ? 'range-end' : ''} ${(isStart || isEnd) ? 'selected' : ''} ${isInRange ? 'in-range' : ''} ${hasSelection ? 'has-range' : ''} ${isToday ? 'is-today' : ''}`}
                       onClick={() => handleDateClick(dateStr)}
                     >
@@ -2529,7 +2527,7 @@ function App() {
           <div className="clock-picker-modal" onClick={e => e.stopPropagation()}>
             <div className="clock-header">
               <div className="clock-time-display">
-                <div 
+                <div
                   className={`clock-large-text ${timeSelectionMode === 'hour' ? 'active' : ''}`}
                   onClick={() => setTimeSelectionMode('hour')}
                 >
@@ -2540,7 +2538,7 @@ function App() {
                   })()}
                 </div>
                 <span className="clock-separator">:</span>
-                <div 
+                <div
                   className={`clock-large-text ${timeSelectionMode === 'minute' ? 'active' : ''}`}
                   onClick={() => setTimeSelectionMode('minute')}
                 >
@@ -2548,7 +2546,7 @@ function App() {
                 </div>
               </div>
               <div className="clock-ampm-toggle">
-                <div 
+                <div
                   className={`ampm-btn ${parseInt(time.split(':')[0]) < 12 ? 'active' : ''}`}
                   onClick={() => {
                     const [h, m] = time.split(':');
@@ -2558,7 +2556,7 @@ function App() {
                 >
                   AM
                 </div>
-                <div 
+                <div
                   className={`ampm-btn ${parseInt(time.split(':')[0]) >= 12 ? 'active' : ''}`}
                   onClick={() => {
                     const [h, m] = time.split(':');
@@ -2572,7 +2570,7 @@ function App() {
             </div>
 
             <div className="clock-face-container">
-              <div 
+              <div
                 ref={clockFaceRef}
                 className="clock-face"
                 onPointerDown={(e) => {
@@ -2582,7 +2580,7 @@ function App() {
                   const centerY = rect.height / 2;
                   const x = e.clientX - rect.left - centerX;
                   const y = e.clientY - rect.top - centerY;
-                  
+
                   let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
                   if (angle < 0) angle += 360;
 
@@ -2603,9 +2601,9 @@ function App() {
               >
                 <div className="clock-center-dot"></div>
                 {/* Needle */}
-                <div 
-                  className="clock-needle" 
-                  style={{ 
+                <div
+                  className="clock-needle"
+                  style={{
                     transform: `translate(-50%, -100%) rotate(${(() => {
                       const [h, m] = time.split(':');
                       if (timeSelectionMode === 'hour') {
@@ -2629,8 +2627,8 @@ function App() {
                     const [h] = time.split(':');
                     const currentH12 = parseInt(h) % 12 || 12;
                     return (
-                      <div 
-                        key={val} 
+                      <div
+                        key={val}
                         className={`clock-number ${val === currentH12 ? 'selected' : ''}`}
                         style={{ left: `${x}%`, top: `${y}%` }}
                       >
@@ -2647,8 +2645,8 @@ function App() {
                     const [_, m] = time.split(':');
                     const currentM = parseInt(m);
                     return (
-                      <div 
-                        key={val} 
+                      <div
+                        key={val}
                         className={`clock-number ${val === currentM ? 'selected' : ''}`}
                         style={{ left: `${x}%`, top: `${y}%` }}
                       >
@@ -2679,8 +2677,8 @@ function App() {
               {dialog.type === 'confirm' && (
                 <button className="dialog-btn secondary" onClick={closeDialog}>Cancel</button>
               )}
-              <button 
-                className="dialog-btn primary" 
+              <button
+                className="dialog-btn primary"
                 onClick={() => {
                   if (dialog.type === 'confirm' && dialog.onConfirm) {
                     dialog.onConfirm();
