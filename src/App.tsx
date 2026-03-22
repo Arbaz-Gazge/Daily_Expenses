@@ -83,7 +83,7 @@ function App() {
   // Filters state
   const [categoryFilters, setCategoryFilters] = useState<string[]>(['All']);
   const [dateFilter, setDateFilter] = useState('All');
-  const [paymentModeFilter, setPaymentModeFilter] = useState('All');
+  const [paymentModeFilter, setPaymentModeFilter] = useState<string[]>(['All']);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [catSearch, setCatSearch] = useState('');
@@ -819,23 +819,32 @@ function App() {
       }
       setNewCategory('');
     }
-  };
-
-  const toggleCategoryFilter = (cat: string) => {
+  };  const toggleCategoryFilter = (cat: string) => {
     if (cat === 'All') {
       setCategoryFilters(['All']);
-      return;
-    }
-    
-    setCategoryFilters(prev => {
-      const withoutAll = prev.filter(c => c !== 'All');
-      if (withoutAll.includes(cat)) {
-        const next = withoutAll.filter(c => c !== cat);
-        return next.length === 0 ? ['All'] : next;
+    } else {
+      const newFilters = categoryFilters.filter(f => f !== 'All');
+      if (newFilters.includes(cat)) {
+        const after = newFilters.filter(f => f !== cat);
+        setCategoryFilters(after.length === 0 ? ['All'] : after);
       } else {
-        return [...withoutAll, cat];
+        setCategoryFilters([...newFilters, cat]);
       }
-    });
+    }
+  };
+
+  const togglePaymentModeFilter = (mode: string) => {
+    if (mode === 'All') {
+      setPaymentModeFilter(['All']);
+    } else {
+      const newFilters = paymentModeFilter.filter(f => f !== 'All');
+      if (newFilters.includes(mode)) {
+        const after = newFilters.filter(f => f !== mode);
+        setPaymentModeFilter(after.length === 0 ? ['All'] : after);
+      } else {
+        setPaymentModeFilter([...newFilters, mode]);
+      }
+    }
   };
 
   const deleteCategory = (catToDelete: string) => {
@@ -897,7 +906,9 @@ function App() {
     if (!categoryFilters.includes('All')) {
       if (!categoryFilters.includes(expense.category || 'Uncategorized')) return false;
     }
-    if (paymentModeFilter !== 'All' && expense.paymentMode !== paymentModeFilter) return false;
+    if (!paymentModeFilter.includes('All')) {
+      if (!paymentModeFilter.includes(expense.paymentMode || 'Not Specified')) return false;
+    }
 
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase();
@@ -1489,21 +1500,30 @@ function App() {
                             className={`custom-select-trigger filter-select ${activeDropdown === 'payFilter' ? 'open' : ''}`}
                             onClick={() => setActiveDropdown('payFilter')}
                           >
-                            {paymentModeFilter === 'All' ? 'All Modes' : paymentModeFilter}
-                          </div>
-                          {activeDropdown === 'payFilter' && (
-                            <div className="popup-dropdown-container">
-                              <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
-                              <ul className="custom-dropdown popup">
-                                <div className="popup-header">Filter by Payment Mode</div>
-                                {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified', ...banks.map(b => b.name)].map(mode => (
-                                  <li key={mode} onClick={() => { setPaymentModeFilter(mode); setActiveDropdown(null); }}>
-                                    {mode === 'All' ? 'All Modes' : mode}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
+                            {paymentModeFilter.includes('All') 
+                              ? 'All Modes' 
+                              : paymentModeFilter.length === 1 
+                                ? paymentModeFilter[0] 
+                                : `${paymentModeFilter.length} Modes`}
+                           </div>
+                           {activeDropdown === 'payFilter' && (
+                             <div className="popup-dropdown-container">
+                               <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
+                               <ul className="custom-dropdown popup multi-select">
+                                 <div className="popup-header">Filter by Payment Mode</div>
+                                 {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified', ...banks.map(b => b.name)].map(mode => (
+                                   <li 
+                                     key={mode} 
+                                     className={paymentModeFilter.includes(mode) ? 'selected' : ''} 
+                                     onClick={() => togglePaymentModeFilter(mode)}
+                                   >
+                                     <span className="checkbox">{paymentModeFilter.includes(mode) ? '✓' : ''}</span>
+                                     {mode === 'All' ? 'All Modes' : mode}
+                                   </li>
+                                 ))}
+                               </ul>
+                             </div>
+                           )}
                         </div>
                       </div>
 
@@ -1554,13 +1574,13 @@ function App() {
                       )}
                     </div>
 
-                     {((categoryFilters.length > 0 && !categoryFilters.includes('All')) || paymentModeFilter !== 'All' || dateFilter !== 'All' || searchQuery !== '') && (
+                     {((categoryFilters.length > 0 && !categoryFilters.includes('All')) || (paymentModeFilter.length > 0 && !paymentModeFilter.includes('All')) || dateFilter !== 'All' || searchQuery !== '') && (
                       <button
                         type="button"
                         className="clear-filters-btn"
                         onClick={() => {
                           setCategoryFilters(['All']);
-                          setPaymentModeFilter('All');
+                          setPaymentModeFilter(['All']);
                           setDateFilter('All');
                           setSearchQuery('');
                           setStartDate('');
