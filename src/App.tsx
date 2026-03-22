@@ -70,45 +70,50 @@ function App() {
     const bank = banks.find(b => b.id === viewingTrx.bankId);
 
     return (
-      <div className="custom-dialog-overlay anim-fade-in" style={{ zIndex: 5000 }} onClick={() => setViewingTrx(null)}>
-        <div className="transaction-detail-modal anim-slide-up" onClick={e => e.stopPropagation()}>
-          <div className="detail-header">
-            <span className={`detail-type-badge ${viewingTrx.type}`}>{viewingTrx.type === 'in' ? 'Cash In' : 'Cash Out'}</span>
-            <button className="detail-close-btn" onClick={() => setViewingTrx(null)}>✕</button>
-          </div>
-          
-          <div className="detail-amount-summary">
-            <div className={`detail-amount-text ${viewingTrx.type}`}>
-              {viewingTrx.type === 'in' ? '+' : '-'}₹{viewingTrx.amount.toFixed(2)}
+      <div className="full-detail-page anim-fade-in" style={{ zIndex: 6000 }}>
+        <div className="full-page-header">
+          <button className="back-btn" onClick={() => setViewingTrx(null)}>←</button>
+          <h2>Transaction Details</h2>
+          <div style={{ width: 44 }}></div> 
+        </div>
+
+        <div className="full-page-content">
+          <div className="detail-hero-section">
+            <span className={`hero-type-tag ${viewingTrx.type}`}>{viewingTrx.type === 'in' ? 'Cash In' : 'Cash Out'}</span>
+            <div className={`hero-amount-text ${viewingTrx.type}`}>
+              {viewingTrx.type === 'in' ? '+' : '-'}₹{viewingTrx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
-            <div className="detail-sub-meta">
-              <span>{new Date(viewingTrx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
-              <span className="bullet-sep">•</span>
-              <span>{formatTime(viewingTrx.time)}</span>
+            <div className="hero-time-meta">
+              {new Date(viewingTrx.date).toLocaleDateString('default', { day: '2-digit', month: 'long', year: 'numeric' })} • {formatTime(viewingTrx.time)}
             </div>
           </div>
 
-          <div className="detail-content-cards">
-            <div className="detail-info-block">
-              <label>Description</label>
-              <div className="info-value large">{viewingTrx.description}</div>
+          <div className="detail-data-section">
+            <div className="detail-data-card">
+              <label>DESCRIPTION</label>
+              <div className="data-value large">{viewingTrx.description}</div>
             </div>
-            
-            <div className="detail-info-grid">
-              <div className="detail-info-block">
-                <label>Category</label>
-                <div className="info-value">{viewingTrx.category || 'General'}</div>
+
+            <div className="detail-data-grid">
+              <div className="detail-data-card">
+                <label>CATEGORY</label>
+                <div className="data-value">{viewingTrx.category || 'General'}</div>
               </div>
-              <div className="detail-info-block">
-                <label>Linked Account</label>
-                <div className="info-value">{bank?.name || 'Unknown Bank'}</div>
+              <div className="detail-data-card">
+                <label>LINKED ACCOUNT</label>
+                <div className="data-value">{bank?.name || 'Unknown'}</div>
               </div>
+            </div>
+
+            <div className="detail-data-card">
+              <label>PAYMENT TYPE</label>
+              <div className="data-value">{viewingTrx.type === 'in' ? 'Deposit / Credit' : 'Expense / Debit'}</div>
             </div>
           </div>
 
-          <div className="detail-modal-footer">
-            <button className="detail-btn edit-btn" onClick={() => { startEditDeposit(viewingTrx); setViewingTrx(null); }}>✎ Edit</button>
-            <button className="detail-btn close-btn-action" onClick={() => setViewingTrx(null)}>Close</button>
+          <div className="full-page-footer">
+            <button className="full-action-btn edit" onClick={() => { startEditDeposit(viewingTrx); setViewingTrx(null); }}>✎ Edit This Entry</button>
+            <button className="full-action-btn delete" onClick={() => { deleteBankTransaction(viewingTrx); setViewingTrx(null); }}>✕ Delete This Entry</button>
           </div>
         </div>
       </div>
