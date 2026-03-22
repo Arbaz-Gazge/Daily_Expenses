@@ -2228,19 +2228,16 @@ input:checked+.slider:before {
 }
 
 .statement-row {
-  background: var(--bg-secondary);
   display: flex;
   align-items: center;
-  padding: 1.25rem 1rem;
-  gap: 1.25rem;
-  border-radius: 16px;
-  margin-bottom: 0.75rem;
-  border: 1px solid var(--border-color);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 1rem 0;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.2s ease;
 }
 
-.statement-row:active {
-  transform: scale(0.98);
+.statement-row:hover {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .row-date {
@@ -2248,22 +2245,26 @@ input:checked+.slider:before {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 50px;
-  padding-right: 1rem;
-  border-right: 1px solid var(--border-color);
+  min-width: 48px;
+  height: 48px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
 }
 
 .row-date .day {
-  font-size: 1.15rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--text-primary);
+  line-height: 1;
 }
 
 .row-date .month {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   color: var(--text-tertiary);
   font-weight: 700;
+  margin-top: 2px;
 }
 
 .row-main {
@@ -2271,10 +2272,10 @@ input:checked+.slider:before {
 }
 
 .row-desc {
-  font-weight: 700;
-  font-size: 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
   color: var(--text-primary);
-  margin-bottom: 0.25rem;
+  margin-bottom: 4px;
 }
 
 .row-meta {
@@ -2308,22 +2309,41 @@ input:checked+.slider:before {
 .row-meta .time {
   font-size: 0.75rem;
   color: var(--text-tertiary);
-  margin-left: 'auto';
+}
+
+.row-amount-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 100px;
 }
 
 .row-amount {
-  font-size: 1.15rem;
-  font-weight: 800;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .row-amount.in { color: #10b981; }
 .row-amount.out { color: #f43f5e; }
 
-.statement-header-group {
+.row-actions {
   display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  margin-bottom: 1.5rem;
+  gap: 0.5rem;
+}
+
+.row-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
 
 .statement-controls {
@@ -2726,4 +2746,16 @@ input:checked+.slider:before {
 .expense-card.selected {
   background: rgba(16, 185, 129, 0.05);
   border: 1px solid var(--accent-color);
+}
+
+.statement-header-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.statement-full-list {
+  padding: 0;
+  margin-top: 1rem;
 }
