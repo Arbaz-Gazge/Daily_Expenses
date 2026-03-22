@@ -1955,21 +1955,11 @@ function App() {
                                   <span className="d">{trx.date.split('-')[2]}</span>
                                   <span className="m">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
                                 </div>
-                                <div className="info-column-liquid">
-                                  <div className="trx-title-row">
-                                    <span className="title-text">{trx.description}</span>
-                                    <div className="vertical-sep"></div>
-                                    <span className="trx-category-chip">{trx.category || 'General'}</span>
-                                    <div className="vertical-sep"></div>
-                                    <span className="trx-time-label">{formatTime(trx.time)}</span>
-                                  </div>
+                                <div className="info-column-max">
+                                  <div className="trx-full-description">{trx.description}</div>
                                 </div>
                                 <div className={`amount-column-fixed ${trx.type}`}>
                                   {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
-                                </div>
-                                <div className="actions-column">
-                                  <button className="mini-btn edit" onClick={(e) => { e.stopPropagation(); startEditDeposit(trx); }}>✎</button>
-                                  <button className="mini-btn delete" onClick={(e) => { e.stopPropagation(); deleteBankTransaction(trx); }}>✕</button>
                                 </div>
                               </div>
                             ));
