@@ -1684,10 +1684,26 @@ function App() {
                 </div>
 
                 <div className="banks-container" style={{ padding: '0 0.5rem' }}>
-                <div className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <div className="view-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <h2 style={{ margin: 0 }}>Banks & Accounts</h2>
                   <button className="add-bank-btn" onClick={() => setShowBankModal(true)}>+ Add Bank</button>
                 </div>
+
+                {banks.length > 0 && (
+                  <div className="total-bank-card anim-slide-up" style={{ 
+                    background: 'var(--accent-color)', 
+                    padding: '1.25rem', 
+                    borderRadius: '16px', 
+                    marginBottom: '1.5rem', 
+                    color: 'white', 
+                    boxShadow: '0 8px 16px rgba(16, 185, 129, 0.2)' 
+                  }}>
+                    <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Total Available Balance</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 700, marginTop: '0.25rem' }}>
+                      ₹{banks.reduce((sum, b) => sum + b.balance, 0).toFixed(2)}
+                    </div>
+                  </div>
+                )}
 
                 {banks.length === 0 ? (
                   <div className="empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-secondary)', borderRadius: '20px', border: '1px dashed var(--border-color)' }}>
@@ -1704,7 +1720,7 @@ function App() {
                         </div>
                         <div className="bank-item-balance">
                           <div className="label">Balance</div>
-                          <div className="amount">₹{bank.balance.toFixed(2)}</div>
+                          <div className="amount" style={{ color: '#10b981', fontWeight: 700 }}>₹{bank.balance.toFixed(2)}</div>
                         </div>
                         <div className="bank-chevron">›</div>
                       </div>
