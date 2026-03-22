@@ -1496,7 +1496,7 @@ function App() {
                               <div className="popup-overlay" onClick={() => setActiveDropdown(null)}></div>
                               <ul className="custom-dropdown popup">
                                 <div className="popup-header">Filter by Payment Mode</div>
-                                {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified'].map(mode => (
+                                {['All', 'Cash', 'Credit Card', 'Debit Card', 'UPI', 'Net Banking', 'Other', 'Not Specified', ...banks.map(b => b.name)].map(mode => (
                                   <li key={mode} onClick={() => { setPaymentModeFilter(mode); setActiveDropdown(null); }}>
                                     {mode === 'All' ? 'All Modes' : mode}
                                   </li>
