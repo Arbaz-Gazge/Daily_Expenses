@@ -1894,29 +1894,24 @@ function App() {
                             }
 
                              return filteredList.map(trx => (
-                              <div key={trx.id} className={`statement-card anim-slide-up ${trx.type}`}>
-                                <div className="card-top-header">
-                                  <div className="date-block">
-                                    <span className="day">{trx.date.split('-')[2]}</span>
-                                    <span className="month">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
-                                  </div>
-                                  <div className="main-content">
-                                    <h3 className="trx-desc">{trx.description}</h3>
-                                    <div className="trx-meta-row">
-                                      <span className={`type-tag ${trx.type}`}>{trx.type === 'in' ? 'Cash In' : 'Cash Out'}</span>
-                                      {trx.category && <span className="cat-tag">{trx.category}</span>}
-                                      <span className="time-tag">{formatTime(trx.time)}</span>
-                                    </div>
-                                  </div>
-                                  <div className="amount-section">
-                                    <div className={`trx-amount ${trx.type}`}>
-                                      {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
-                                    </div>
+                              <div key={trx.id} className={`statement-list-row ${trx.type}`}>
+                                <div className="date-column">
+                                  <span className="d">{trx.date.split('-')[2]}</span>
+                                  <span className="m">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
+                                </div>
+                                <div className="info-column">
+                                  <div className="trx-title">{trx.description}</div>
+                                  <div className="trx-labels">
+                                    <span className={`type-dot ${trx.type}`}></span>
+                                    {trx.category || 'No Category'} • {formatTime(trx.time)}
                                   </div>
                                 </div>
-                                <div className="card-actions-row">
-                                  <button className="icon-action edit" onClick={(e) => { e.stopPropagation(); startEditDeposit(trx); }}>✎ Edit</button>
-                                  <button className="icon-action delete" onClick={(e) => { e.stopPropagation(); deleteBankTransaction(trx); }}>✕ Delete</button>
+                                <div className={`amount-column ${trx.type}`}>
+                                  {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
+                                </div>
+                                <div className="actions-column">
+                                  <button className="mini-btn edit" onClick={(e) => { e.stopPropagation(); startEditDeposit(trx); }}>✎</button>
+                                  <button className="mini-btn delete" onClick={(e) => { e.stopPropagation(); deleteBankTransaction(trx); }}>✕</button>
                                 </div>
                               </div>
                             ));
