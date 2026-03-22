@@ -1894,27 +1894,31 @@ function App() {
                             }
 
                             return filteredList.map(trx => (
-                              <div key={trx.id} className={`statement-row ${trx.type}`}>
-                                <div className="row-date">
-                                  <span className="day">{trx.date.split('-')[2]}</span>
-                                  <span className="month">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
-                                </div>
-                                <div className="row-main">
-                                  <div className="row-desc">{trx.description}</div>
-                                  <div className="row-meta">
-                                    <span className={`type-badge ${trx.type}`}>{trx.type === 'in' ? 'Cash In' : 'Cash Out'}</span>
-                                    {trx.category && <span className="cat-badge">{trx.category}</span>}
-                                    <span className="time">{formatTime(trx.time)}</span>
+                              <div key={trx.id} className={`statement-card anim-slide-up ${trx.type}`}>
+                                <div className="card-top-header">
+                                  <div className="date-block">
+                                    <span className="day">{trx.date.split('-')[2]}</span>
+                                    <span className="month">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
+                                  </div>
+                                  <div className="main-content">
+                                    <h3 className="trx-desc">{trx.description}</h3>
+                                    <div className="trx-meta-row">
+                                      <span className={`type-tag ${trx.type}`}>{trx.type === 'in' ? 'Cash In' : 'Cash Out'}</span>
+                                      {trx.category && <span className="cat-tag">{trx.category}</span>}
+                                      <span className="time-tag">{formatTime(trx.time)}</span>
+                                    </div>
+                                  </div>
+                                  <div className="amount-section">
+                                    <div className={`trx-amount ${trx.type}`}>
+                                      {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="row-amount-group">
-                                  <div className={`row-amount ${trx.type}`}>
-                                    {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
-                                  </div>
-                                  <div className="row-actions">
-                                    <button className="row-btn edit" onClick={(e) => { e.stopPropagation(); startEditDeposit(trx); }}>✎</button>
-                                    <button className="row-btn delete" onClick={(e) => { e.stopPropagation(); deleteBankTransaction(trx); }}>✕</button>
-                                  </div>
+                                <div className="card-footer">
+                                   <div className="trx-actions">
+                                      <button className="icon-action edit" onClick={(e) => { e.stopPropagation(); startEditDeposit(trx); }}>✎ Edit</button>
+                                      <button className="icon-action delete" onClick={(e) => { e.stopPropagation(); deleteBankTransaction(trx); }}>✕ Delete</button>
+                                   </div>
                                 </div>
                               </div>
                             ));
