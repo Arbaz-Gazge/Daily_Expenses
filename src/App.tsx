@@ -56,6 +56,7 @@ interface Settings {
 
 function App() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [viewingTrx, setViewingTrx] = useState<BankTransaction | null>(null);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -63,6 +64,56 @@ function App() {
   const [time, setTime] = useState('');
   const [paymentMode, setPaymentMode] = useState('');
   const [remark, setRemark] = useState('');
+
+  const renderTransactionDetailModal = () => {
+    if (!viewingTrx) return null;
+    const bank = banks.find(b => b.id === viewingTrx.bankId);
+
+    return (
+      <div className="custom-dialog-overlay anim-fade-in" style={{ zIndex: 5000 }} onClick={() => setViewingTrx(null)}>
+        <div className="transaction-detail-modal anim-slide-up" onClick={e => e.stopPropagation()}>
+          <div className="detail-header">
+            <span className={`detail-type-badge ${viewingTrx.type}`}>{viewingTrx.type === 'in' ? 'Cash In' : 'Cash Out'}</span>
+            <button className="detail-close-btn" onClick={() => setViewingTrx(null)}>✕</button>
+          </div>
+          
+          <div className="detail-amount-summary">
+            <div className={`detail-amount-text ${viewingTrx.type}`}>
+              {viewingTrx.type === 'in' ? '+' : '-'}₹{viewingTrx.amount.toFixed(2)}
+            </div>
+            <div className="detail-sub-meta">
+              <span>{new Date(viewingTrx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
+              <span className="bullet-sep">•</span>
+              <span>{formatTime(viewingTrx.time)}</span>
+            </div>
+          </div>
+
+          <div className="detail-content-cards">
+            <div className="detail-info-block">
+              <label>Description</label>
+              <div className="info-value large">{viewingTrx.description}</div>
+            </div>
+            
+            <div className="detail-info-grid">
+              <div className="detail-info-block">
+                <label>Category</label>
+                <div className="info-value">{viewingTrx.category || 'General'}</div>
+              </div>
+              <div className="detail-info-block">
+                <label>Linked Account</label>
+                <div className="info-value">{bank?.name || 'Unknown Bank'}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="detail-modal-footer">
+            <button className="detail-btn edit-btn" onClick={() => { startEditDeposit(viewingTrx); setViewingTrx(null); }}>✎ Edit</button>
+            <button className="detail-btn close-btn-action" onClick={() => setViewingTrx(null)}>Close</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Sidebar and View State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -1894,7 +1945,7 @@ function App() {
                             }
 
                              return filteredList.map(trx => (
-                              <div key={trx.id} className={`statement-list-row ${trx.type}`}>
+                              <div key={trx.id} className={`statement-list-row ${trx.type}`} onClick={() => setViewingTrx(trx)}>
                                 <div className="date-column">
                                   <span className="d">{trx.date.split('-')[2]}</span>
                                   <span className="m">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
@@ -2241,6 +2292,8 @@ function App() {
         </div>
       )}
 
+      {/* Transaction Detail Modal */}
+      {renderTransactionDetailModal()}
       {/* Bank Manager Modals */}
       {showBankModal && (
         <div className="modal-overlay">
