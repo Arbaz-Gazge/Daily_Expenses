@@ -1948,18 +1948,17 @@ function App() {
                                 </div>
                               );
                             }
-
-                             return filteredList.map(trx => (
+                            return filteredList.map(trx => (
                               <div key={trx.id} className={`statement-list-row ${trx.type}`} onClick={() => setViewingTrx(trx)}>
                                 <div className="date-column">
                                   <span className="d">{trx.date.split('-')[2]}</span>
                                   <span className="m">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
                                 </div>
-                                <div className="info-column-max">
-                                  <div className="trx-full-description">{trx.description}</div>
-                                </div>
-                                <div className={`amount-column-fixed ${trx.type}`}>
-                                  {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
+                                <div className="trx-content-stack">
+                                  <div className="trx-long-description">{trx.description}</div>
+                                  <div className={`trx-stacked-amount ${trx.type}`}>
+                                    {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </div>
                                 </div>
                               </div>
                             ));
