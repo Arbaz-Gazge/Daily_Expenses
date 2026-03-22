@@ -1899,14 +1899,16 @@ function App() {
                                   <span className="d">{trx.date.split('-')[2]}</span>
                                   <span className="m">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
                                 </div>
-                                <div className="info-column">
-                                  <div className="trx-title">{trx.description}</div>
-                                  <div className="trx-labels">
-                                    <span className={`type-dot ${trx.type}`}></span>
-                                    {trx.category || 'No Category'} • {formatTime(trx.time)}
+                                <div className="info-column-liquid">
+                                  <div className="trx-title-row">
+                                    <span className="title-text">{trx.description}</span>
+                                    <div className="vertical-sep"></div>
+                                    <span className="trx-category-chip">{trx.category || 'General'}</span>
+                                    <div className="vertical-sep"></div>
+                                    <span className="trx-time-label">{formatTime(trx.time)}</span>
                                   </div>
                                 </div>
-                                <div className={`amount-column ${trx.type}`}>
+                                <div className={`amount-column-fixed ${trx.type}`}>
                                   {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toFixed(2)}
                                 </div>
                                 <div className="actions-column">
