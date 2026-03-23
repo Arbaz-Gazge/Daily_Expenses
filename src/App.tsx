@@ -57,6 +57,7 @@ interface Settings {
 function App() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [viewingTrx, setViewingTrx] = useState<BankTransaction | null>(null);
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
@@ -78,43 +79,52 @@ function App() {
         </div>
 
         <div className="full-page-content">
-          <div className="detail-hero-section">
-            <span className={`hero-type-tag ${viewingTrx.type}`}>{viewingTrx.type === 'in' ? 'Cash In' : 'Cash Out'}</span>
-            <div className={`hero-amount-text ${viewingTrx.type}`}>
-              {viewingTrx.type === 'in' ? '+' : '-'}₹{viewingTrx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {isDetailLoading ? (
+            <div className="detail-loading-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+              <div className="spinner"></div>
+              <p style={{ marginTop: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Loading...</p>
             </div>
-            <div className="hero-time-meta">
-              {new Date(viewingTrx.date).toLocaleDateString('default', { day: '2-digit', month: 'long', year: 'numeric' })} • {formatTime(viewingTrx.time)}
-            </div>
-          </div>
-
-          <div className="detail-data-section">
-            <div className="detail-data-card">
-              <label>DESCRIPTION</label>
-              <div className="data-value large">{viewingTrx.description}</div>
-            </div>
-
-            <div className="detail-data-grid">
-              <div className="detail-data-card">
-                <label>CATEGORY</label>
-                <div className="data-value">{viewingTrx.category || 'General'}</div>
+          ) : (
+            <>
+              <div className="detail-hero-section">
+                <span className={`hero-type-tag ${viewingTrx.type}`}>{viewingTrx.type === 'in' ? 'Cash In' : 'Cash Out'}</span>
+                <div className={`hero-amount-text ${viewingTrx.type}`}>
+                  {viewingTrx.type === 'in' ? '+' : '-'}₹{viewingTrx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+                <div className="hero-time-meta">
+                  {new Date(viewingTrx.date).toLocaleDateString('default', { day: '2-digit', month: 'long', year: 'numeric' })} • {formatTime(viewingTrx.time)}
+                </div>
               </div>
-              <div className="detail-data-card">
-                <label>LINKED ACCOUNT</label>
-                <div className="data-value">{bank?.name || 'Unknown'}</div>
+
+              <div className="detail-data-section">
+                <div className="detail-data-card">
+                  <label>DESCRIPTION</label>
+                  <div className="data-value large">{viewingTrx.description}</div>
+                </div>
+
+                <div className="detail-data-grid">
+                  <div className="detail-data-card">
+                    <label>CATEGORY</label>
+                    <div className="data-value">{viewingTrx.category || 'General'}</div>
+                  </div>
+                  <div className="detail-data-card">
+                    <label>LINKED ACCOUNT</label>
+                    <div className="data-value">{bank?.name || 'Unknown'}</div>
+                  </div>
+                </div>
+
+                <div className="detail-data-card">
+                  <label>PAYMENT TYPE</label>
+                  <div className="data-value">{viewingTrx.type === 'in' ? 'Deposit / Credit' : 'Expense / Debit'}</div>
+                </div>
               </div>
-            </div>
 
-            <div className="detail-data-card">
-              <label>PAYMENT TYPE</label>
-              <div className="data-value">{viewingTrx.type === 'in' ? 'Deposit / Credit' : 'Expense / Debit'}</div>
-            </div>
-          </div>
-
-          <div className="full-page-footer">
-            <button className="full-action-btn edit" onClick={() => { startEditDeposit(viewingTrx); setViewingTrx(null); }}>✎ Edit This Entry</button>
-            <button className="full-action-btn delete" onClick={() => { deleteBankTransaction(viewingTrx); setViewingTrx(null); }}>✕ Delete This Entry</button>
-          </div>
+              <div className="full-page-footer">
+                <button className="full-action-btn edit" onClick={() => { startEditDeposit(viewingTrx); setViewingTrx(null); }}>✎ Edit This Entry</button>
+                <button className="full-action-btn delete" onClick={() => { deleteBankTransaction(viewingTrx); setViewingTrx(null); }}>✕ Delete This Entry</button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );
@@ -1949,7 +1959,11 @@ function App() {
                               );
                             }
                             return filteredList.map(trx => (
-                              <div key={trx.id} className={`statement-list-row ${trx.type}`} onClick={() => setViewingTrx(trx)}>
+                              <div key={trx.id} className={`statement-list-row ${trx.type}`} onClick={() => {
+                                setViewingTrx(trx);
+                                setIsDetailLoading(true);
+                                setTimeout(() => setIsDetailLoading(false), 400);
+                              }}>
                                 <div className="date-column">
                                   <span className="d">{trx.date.split('-')[2]}</span>
                                   <span className="m">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
