@@ -401,6 +401,47 @@ function App() {
     }
   }, [dataLoaded, triggerCheck, autoPays, banks]); // Added banks to dependencies for latest data
 
+  useEffect(() => {
+    // Check if any modal, overlay, or fullscreen view is currently open
+    const isAnyModalOpen =
+      dialog.show ||
+      isSidebarOpen ||
+      showCalendar ||
+      showTimePicker ||
+      showBankModal ||
+      showDepositModal ||
+      isCategoryModalOpen ||
+      isDepositCategoryModalOpen ||
+      !!viewingTrx ||
+      showNumPad ||
+      showSearch ||
+      !!activeDropdown;
+
+    if (isAnyModalOpen) {
+      document.body.classList.add('no-scroll');
+    } else {
+      document.body.classList.remove('no-scroll');
+    }
+
+    // Cleanup when component unmounts
+    return () => {
+      document.body.classList.remove('no-scroll');
+    };
+  }, [
+    dialog.show,
+    isSidebarOpen,
+    showCalendar,
+    showTimePicker,
+    showBankModal,
+    showDepositModal,
+    isCategoryModalOpen,
+    isDepositCategoryModalOpen,
+    viewingTrx,
+    showNumPad,
+    showSearch,
+    activeDropdown
+  ]);
+
   const checkAndExecuteAutoPays = () => {
     let newExpenses: Expense[] = [];
     let newTrxList: BankTransaction[] = [];

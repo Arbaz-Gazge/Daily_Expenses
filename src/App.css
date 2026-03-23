@@ -46,6 +46,11 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+body.no-scroll {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
 .container {
   max-width: 600px;
   margin: 0 auto;
