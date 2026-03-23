@@ -1243,6 +1243,53 @@ function App() {
     e.target.value = '';
   };
 
+  const handleExportCSV = async () => {
+    try {
+      if (expenses.length === 0) {
+        showAlert('No expenses to export.');
+        return;
+      }
+      const headers = ['Date', 'Time', 'Amount', 'Category', 'Description', 'Payment Mode'];
+      const csvRows = [headers.join(',')];
+      
+      expenses.forEach(exp => {
+        const safeDesc = exp.description.replace(/"/g, '""');
+        const safeMode = (exp.paymentMode || '').replace(/"/g, '""');
+        csvRows.push(`${exp.date},${exp.time},${exp.amount},"${exp.category}","${safeDesc}","${safeMode}"`);
+      });
+      
+      const csvString = csvRows.join('\n');
+      const fileName = `Expenses_Export_${new Date().toISOString().split('T')[0]}.csv`;
+      
+      if (Capacitor.isNativePlatform()) {
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: csvString,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8
+        });
+        
+        await Share.share({
+          title: 'Export Expenses CSV',
+          url: result.uri,
+          dialogTitle: 'Share or Save your CSV'
+        });
+      } else {
+        const blob = new Blob([csvString], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (e: any) {
+      showAlert('Failed to export CSV: ' + e.message);
+    }
+  };
+
   return (
     <div className={`app-container ${settings.theme}`}>
       {/* App Loading Splash Screen */}
@@ -1280,8 +1327,8 @@ function App() {
           <li className={currentView === 'Auto Pay' ? 'active' : ''} onClick={() => { handleViewSwitch('Auto Pay'); setIsSidebarOpen(false); }}>
             Auto Pay
           </li>
-          <li className={currentView === 'Backup & Restore' ? 'active' : ''} onClick={() => { handleViewSwitch('Backup & Restore'); setIsSidebarOpen(false); }}>
-            Backup & Restore
+          <li className={currentView === 'Backup & Export' ? 'active' : ''} onClick={() => { handleViewSwitch('Backup & Export'); setIsSidebarOpen(false); }}>
+            Backup & Export
           </li>
           <li className={currentView === 'About Us' ? 'active' : ''} onClick={() => { handleViewSwitch('About Us'); setIsSidebarOpen(false); }}>
             About Us
@@ -1780,14 +1827,19 @@ function App() {
               </div>
             )}
 
-            {currentView === 'Backup & Restore' && (
+            {currentView === 'Backup & Export' && (
               <div className="backup-container">
-                <h2>Backup & Restore</h2>
-                <p>Download a backup file of your expenses and categories, or restore from an existing file.</p>
+                <h2>Backup & Export</h2>
+                <p>Download a backup file of your expenses, export them to CSV, or restore from an existing backup.</p>
 
-                <button className="submit-btn" onClick={handleBackup} style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-                  Download Backup File
-                </button>
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+                  <button className="submit-btn" onClick={handleBackup} style={{ margin: 0, flex: 1 }}>
+                    App Backup
+                  </button>
+                  <button className="submit-btn" onClick={handleExportCSV} style={{ margin: 0, flex: 1, background: '#3b82f6' }}>
+                    Export CSV
+                  </button>
+                </div>
 
                 <div className="form-group">
                   <label>Restore from File</label>
