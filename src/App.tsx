@@ -2321,7 +2321,7 @@ function App() {
               )}
             </div>
 
-            <div className="category-list">
+            <div className="category-list-scroll">
               {categories.map((cat, idx) => (
                 <div key={cat} className="category-list-item">
                   <span className="cat-name">{cat}</span>
@@ -2371,7 +2371,7 @@ function App() {
               )}
             </div>
 
-            <div className="category-list">
+            <div className="category-list-scroll">
               {depositCategories.map((cat, idx) => (
                 <div key={cat} className="category-list-item">
                   <span className="cat-name">{cat}</span>

@@ -790,6 +790,9 @@ input:checked+.slider:before {
 /* Category Modal Styles */
 .category-modal {
   max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
 }
 
 .modal-header {
@@ -799,6 +802,7 @@ input:checked+.slider:before {
   margin-bottom: 1.5rem;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 1rem;
+  flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -810,6 +814,7 @@ input:checked+.slider:before {
   display: flex;
   gap: 0.75rem;
   margin-bottom: 1.5rem;
+  flex-shrink: 0;
 }
 
 .category-modal-input {
@@ -829,6 +834,7 @@ input:checked+.slider:before {
   cursor: pointer;
   border: none;
   font-family: inherit;
+  flex-shrink: 0;
 }
 
 .modal-action-btn.primary {
@@ -842,11 +848,12 @@ input:checked+.slider:before {
 }
 
 .category-list-scroll {
-  max-height: 300px;
+  flex: 1;
   overflow-y: auto;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   background: var(--bg-primary);
+  min-height: 100px;
 }
 
 .category-list-item {
