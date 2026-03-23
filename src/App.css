@@ -2220,10 +2220,10 @@ input:checked+.slider:before {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: #0b3d3d;
-  padding: 1rem 1.5rem;
-  border-radius: 14px;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.85rem;
 }
 
 .detail-statement-section {

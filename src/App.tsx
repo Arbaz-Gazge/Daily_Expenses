@@ -1825,7 +1825,7 @@ function App() {
                               setShowDepositModal(true);
                             }}
                           >
-                            + Add Money (Cash In)
+                            + Add Money
                           </button>
                         </div>
                       </div>
