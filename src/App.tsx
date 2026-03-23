@@ -1907,66 +1907,66 @@ function App() {
                           </div>
                         </div>
 
-                        <div className="statement-full-list">
-                          {(() => {
-                            let filteredList = bankTransactions.filter(t => t.bankId === bank.id);
+                        {(() => {
+                          let filteredList = bankTransactions.filter(t => t.bankId === bank.id);
 
-                            // Type Filter
-                            if (bankTypeFilter !== 'All') {
-                              filteredList = filteredList.filter(t => t.type === bankTypeFilter);
-                            }
+                          // Type Filter
+                          if (bankTypeFilter !== 'All') {
+                            filteredList = filteredList.filter(t => t.type === bankTypeFilter);
+                          }
 
-                            // Search Filter
-                            if (bankSearchQuery.trim() !== '') {
-                              const q = bankSearchQuery.toLowerCase();
-                              filteredList = filteredList.filter(t =>
-                                t.description.toLowerCase().includes(q) ||
-                                t.category?.toLowerCase().includes(q)
-                              );
-                            }
+                          // Search Filter
+                          if (bankSearchQuery.trim() !== '') {
+                            const q = bankSearchQuery.toLowerCase();
+                            filteredList = filteredList.filter(t =>
+                              t.description.toLowerCase().includes(q) ||
+                              t.category?.toLowerCase().includes(q)
+                            );
+                          }
 
-                            // Date Filter
-                            if (bankDateFilter !== 'All') {
-                              const today = new Date();
-                              const todayStr = getLocalDateStr(today);
-                              const yesterday = new Date(today);
-                              yesterday.setDate(yesterday.getDate() - 1);
-                              const yesterdayStr = getLocalDateStr(yesterday);
-                              const sevenDaysAgo = new Date(today);
-                              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                              const thirtyDaysAgo = new Date(today);
-                              thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                          // Date Filter
+                          if (bankDateFilter !== 'All') {
+                            const today = new Date();
+                            const todayStr = getLocalDateStr(today);
+                            const yesterday = new Date(today);
+                            yesterday.setDate(yesterday.getDate() - 1);
+                            const yesterdayStr = getLocalDateStr(yesterday);
+                            const sevenDaysAgo = new Date(today);
+                            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                            const thirtyDaysAgo = new Date(today);
+                            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-                              filteredList = filteredList.filter(t => {
-                                if (bankDateFilter === 'Today') return t.date === todayStr;
-                                if (bankDateFilter === 'Yesterday') return t.date === yesterdayStr;
-                                if (bankDateFilter === 'Last 7 Days') return t.date >= getLocalDateStr(sevenDaysAgo);
-                                if (bankDateFilter === 'Last 30 Days') return t.date >= getLocalDateStr(thirtyDaysAgo);
-                                if (bankDateFilter === 'Custom') {
-                                  if (bankStartDate && t.date < bankStartDate) return false;
-                                  if (bankEndDate && t.date > bankEndDate) return false;
-                                  return true;
-                                }
+                            filteredList = filteredList.filter(t => {
+                              if (bankDateFilter === 'Today') return t.date === todayStr;
+                              if (bankDateFilter === 'Yesterday') return t.date === yesterdayStr;
+                              if (bankDateFilter === 'Last 7 Days') return t.date >= getLocalDateStr(sevenDaysAgo);
+                              if (bankDateFilter === 'Last 30 Days') return t.date >= getLocalDateStr(thirtyDaysAgo);
+                              if (bankDateFilter === 'Custom') {
+                                if (bankStartDate && t.date < bankStartDate) return false;
+                                if (bankEndDate && t.date > bankEndDate) return false;
                                 return true;
-                              });
-                            }
+                              }
+                              return true;
+                            });
+                          }
 
-                            const totalIn = filteredList.filter(t => t.type === 'in').reduce((sum, t) => sum + t.amount, 0);
-                            const totalOut = filteredList.filter(t => t.type === 'out').reduce((sum, t) => sum + t.amount, 0);
+                          const totalIn = filteredList.filter(t => t.type === 'in').reduce((sum, t) => sum + t.amount, 0);
+                          const totalOut = filteredList.filter(t => t.type === 'out').reduce((sum, t) => sum + t.amount, 0);
 
-                            return (
-                              <>
-                                <div className="filtered-summary-cards" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                                  <div style={{ flex: 1, background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{bankDateFilter !== 'All' ? bankDateFilter : 'Total'} Cash In</div>
-                                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981', letterSpacing: '-0.5px' }}>+₹{totalIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                                  </div>
-                                  <div style={{ flex: 1, background: 'rgba(244, 63, 94, 0.1)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
-                                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f43f5e', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{bankDateFilter !== 'All' ? bankDateFilter : 'Total'} Cash Out</div>
-                                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f43f5e', letterSpacing: '-0.5px' }}>-₹{totalOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                                  </div>
+                          return (
+                            <>
+                              <div className="filtered-summary-cards" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                                <div style={{ flex: 1, background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{bankDateFilter !== 'All' ? bankDateFilter : 'Total'} Cash In</div>
+                                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981', letterSpacing: '-0.5px' }}>+₹{totalIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 </div>
+                                <div style={{ flex: 1, background: 'rgba(244, 63, 94, 0.1)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f43f5e', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{bankDateFilter !== 'All' ? bankDateFilter : 'Total'} Cash Out</div>
+                                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f43f5e', letterSpacing: '-0.5px' }}>-₹{totalOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                </div>
+                              </div>
 
+                              <div className="statement-full-list">
                                 {filteredList.length === 0 ? (
                                   <div className="empty-statement">
                                     <p>No transactions match your filters.</p>
@@ -1994,10 +1994,10 @@ function App() {
                                     </div>
                                   ))
                                 )}
-                              </>
-                            );
-                          })()}
-                        </div>
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </>
                   );
