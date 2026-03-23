@@ -325,10 +325,24 @@ function App() {
         if (filtersData.endDate) setEndDate(filtersData.endDate);
       }
       const savedBanks = await Preferences.get({ key: 'banks' });
-      if (savedBanks.value) setBanks(JSON.parse(savedBanks.value));
+      let parsedBanks: Bank[] = [];
+      if (savedBanks.value) parsedBanks = JSON.parse(savedBanks.value);
 
       const savedBankTrx = await Preferences.get({ key: 'bankTransactions' });
-      if (savedBankTrx.value) setBankTransactions(JSON.parse(savedBankTrx.value));
+      let parsedTrx: BankTransaction[] = [];
+      if (savedBankTrx.value) parsedTrx = JSON.parse(savedBankTrx.value);
+
+      // Auto-reconcile to securely fix any previous database desyncs
+      if (parsedBanks.length > 0) {
+        parsedBanks = parsedBanks.map(b => {
+          const totalIn = parsedTrx.filter(t => t.bankId === b.id && t.type === 'in').reduce((sum, t) => sum + t.amount, 0);
+          const totalOut = parsedTrx.filter(t => t.bankId === b.id && t.type === 'out').reduce((sum, t) => sum + t.amount, 0);
+          return { ...b, balance: totalIn - totalOut };
+        });
+      }
+
+      setBanks(parsedBanks);
+      setBankTransactions(parsedTrx);
 
       const savedAutoPays = await Preferences.get({ key: 'autoPays' });
       if (savedAutoPays.value) setAutoPays(JSON.parse(savedAutoPays.value));
@@ -722,11 +736,22 @@ function App() {
       // Handle Update
       const oldTrx = bankTransactions.find(t => t.id === editingBankTransactionId);
       if (oldTrx) {
-        const diff = amountNum - oldTrx.amount;
-        setBanks(prev => prev.map(b => b.id === selectedBankId ? { ...b, balance: b.balance + diff } : b));
+        setBanks(prev => prev.map(b => {
+          let updatedBalance = b.balance;
+          // Revert old transaction effect on old bank
+          if (b.id === oldTrx.bankId) {
+            updatedBalance += (oldTrx.type === 'in' ? -oldTrx.amount : oldTrx.amount);
+          }
+          // Apply new transaction effect on new bank
+          if (b.id === selectedBankId) {
+            updatedBalance += (oldTrx.type === 'in' ? amountNum : -amountNum);
+          }
+          return { ...b, balance: updatedBalance };
+        }));
+
         setBankTransactions(prev => prev.map(t =>
           t.id === editingBankTransactionId
-            ? { ...t, amount: amountNum, description: depositDescription, category: depositCategory }
+            ? { ...t, bankId: selectedBankId, amount: amountNum, description: depositDescription, category: depositCategory }
             : t
         ));
       }
