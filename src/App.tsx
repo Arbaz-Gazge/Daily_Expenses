@@ -4,6 +4,8 @@ import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import './App.css';
 
 interface Expense {
@@ -1290,6 +1292,61 @@ function App() {
     }
   };
 
+  const handleExportPDF = async () => {
+    try {
+      if (expenses.length === 0) {
+        showAlert('No expenses to export.');
+        return;
+      }
+      setIsLoading(true); // show loader while generating 
+      const doc = new jsPDF();
+      doc.text("Expense Tracker Report", 14, 15);
+      doc.setFontSize(10);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
+
+      const tableData = expenses.map(exp => [
+        exp.date,
+        exp.time,
+        exp.category || '',
+        exp.paymentMode || '',
+        `Rs ${exp.amount.toFixed(2)}`
+      ]);
+
+      autoTable(doc, {
+        startY: 28,
+        head: [['Date', 'Time', 'Category', 'Payment', 'Amount']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [17, 153, 142] } // Match --accent-dark theme color
+      });
+
+      const fileName = `Expenses_Export_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      if (Capacitor.isNativePlatform()) {
+        const pdfDataUri = doc.output('datauristring');
+        const base64str = pdfDataUri.split('base64,')[1]; 
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: base64str,
+          directory: Directory.Cache
+          // omitting encoding parameter writes exactly binary base64 decoded data in modern Capacitor
+        });
+        
+        await Share.share({
+          title: 'Export Expenses PDF',
+          url: result.uri,
+          dialogTitle: 'Share or Save your PDF'
+        });
+      } else {
+        doc.save(fileName);
+      }
+    } catch (e: any) {
+      showAlert('Failed to export PDF: ' + e.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className={`app-container ${settings.theme}`}>
       {/* App Loading Splash Screen */}
@@ -1833,11 +1890,14 @@ function App() {
                 <p>Download a backup file of your expenses, export them to CSV, or restore from an existing backup.</p>
 
                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-                  <button className="submit-btn" onClick={handleBackup} style={{ margin: 0, flex: 1 }}>
+                  <button className="submit-btn" onClick={handleBackup} style={{ margin: 0, flex: 1, padding: '0.85rem' }}>
                     App Backup
                   </button>
-                  <button className="submit-btn" onClick={handleExportCSV} style={{ margin: 0, flex: 1, background: '#3b82f6' }}>
+                  <button className="submit-btn" onClick={handleExportCSV} style={{ margin: 0, flex: 1, background: '#3b82f6', padding: '0.85rem' }}>
                     Export CSV
+                  </button>
+                  <button className="submit-btn" onClick={handleExportPDF} style={{ margin: 0, flex: 1, background: '#ef4444', padding: '0.85rem' }}>
+                    Export PDF
                   </button>
                 </div>
 
