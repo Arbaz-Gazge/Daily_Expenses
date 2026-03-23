@@ -1970,6 +1970,9 @@ function App() {
                                 </div>
                                 <div className="trx-content-stack">
                                   <div className="trx-long-description">{trx.description}</div>
+                                  <div className="trx-date-time-sub" style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                                    {new Date(trx.date).toLocaleDateString('default', { day: '2-digit', month: 'short', year: 'numeric' })} • {formatTime(trx.time)}
+                                  </div>
                                   <div className={`trx-stacked-amount ${trx.type}`}>
                                     {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </div>
