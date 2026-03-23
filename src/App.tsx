@@ -1951,34 +1951,51 @@ function App() {
                               });
                             }
 
-                            if (filteredList.length === 0) {
-                              return (
-                                <div className="empty-statement">
-                                  <p>No transactions match your filters.</p>
-                                </div>
-                              );
-                            }
-                            return filteredList.map(trx => (
-                              <div key={trx.id} className={`statement-list-row ${trx.type}`} onClick={() => {
-                                setViewingTrx(trx);
-                                setIsDetailLoading(true);
-                                setTimeout(() => setIsDetailLoading(false), 400);
-                              }}>
-                                <div className="date-column">
-                                  <span className="d">{trx.date.split('-')[2]}</span>
-                                  <span className="m">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
-                                </div>
-                                <div className="trx-content-stack">
-                                  <div className="trx-long-description">{trx.description}</div>
-                                  <div className="trx-date-time-sub" style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>
-                                    {new Date(trx.date).toLocaleDateString('default', { day: '2-digit', month: 'short', year: 'numeric' })} • {formatTime(trx.time)}
+                            const totalIn = filteredList.filter(t => t.type === 'in').reduce((sum, t) => sum + t.amount, 0);
+                            const totalOut = filteredList.filter(t => t.type === 'out').reduce((sum, t) => sum + t.amount, 0);
+
+                            return (
+                              <>
+                                <div className="filtered-summary-cards" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                                  <div style={{ flex: 1, background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{bankDateFilter !== 'All' ? bankDateFilter : 'Total'} Cash In</div>
+                                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981', letterSpacing: '-0.5px' }}>+₹{totalIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                   </div>
-                                  <div className={`trx-stacked-amount ${trx.type}`}>
-                                    {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  <div style={{ flex: 1, background: 'rgba(244, 63, 94, 0.1)', padding: '1rem', borderRadius: '14px', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
+                                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f43f5e', textTransform: 'uppercase', marginBottom: '0.25rem' }}>{bankDateFilter !== 'All' ? bankDateFilter : 'Total'} Cash Out</div>
+                                    <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#f43f5e', letterSpacing: '-0.5px' }}>-₹{totalOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                   </div>
                                 </div>
-                              </div>
-                            ));
+
+                                {filteredList.length === 0 ? (
+                                  <div className="empty-statement">
+                                    <p>No transactions match your filters.</p>
+                                  </div>
+                                ) : (
+                                  filteredList.map(trx => (
+                                    <div key={trx.id} className={`statement-list-row ${trx.type}`} onClick={() => {
+                                      setViewingTrx(trx);
+                                      setIsDetailLoading(true);
+                                      setTimeout(() => setIsDetailLoading(false), 400);
+                                    }}>
+                                      <div className="date-column">
+                                        <span className="d">{trx.date.split('-')[2]}</span>
+                                        <span className="m">{new Date(trx.date).toLocaleString('default', { month: 'short' })}</span>
+                                      </div>
+                                      <div className="trx-content-stack">
+                                        <div className="trx-long-description">{trx.description}</div>
+                                        <div className="trx-date-time-sub" style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>
+                                          {new Date(trx.date).toLocaleDateString('default', { day: '2-digit', month: 'short', year: 'numeric' })} • {formatTime(trx.time)}
+                                        </div>
+                                        <div className={`trx-stacked-amount ${trx.type}`}>
+                                          {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))
+                                )}
+                              </>
+                            );
                           })()}
                         </div>
                       </div>
