@@ -33,7 +33,9 @@ public class AddExpenseActivity extends Activity {
 
         EditText editAmount = findViewById(R.id.editAmount);
         EditText editDescription = findViewById(R.id.editDescription);
+        EditText editRemark = findViewById(R.id.editRemark);
         Spinner spinnerCategory = findViewById(R.id.spinnerCategory);
+        Spinner spinnerPaymentMode = findViewById(R.id.spinnerPaymentMode);
         Button btnAdd = findViewById(R.id.btnAdd);
         Button btnCancel = findViewById(R.id.btnCancel);
 
@@ -64,6 +66,28 @@ public class AddExpenseActivity extends Activity {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerCategory.setAdapter(adapter);
 
+        // Load Banks for Payment Mode
+        String savedBanks = prefs.getString("banks", "[]");
+        final List<String> banksList = new ArrayList<>();
+        final List<String> bankIds = new ArrayList<>();
+        banksList.add("Cash");
+        bankIds.add("cash");
+        
+        try {
+            JSONArray bankArr = new JSONArray(savedBanks);
+            for (int i = 0; i < bankArr.length(); i++) {
+                JSONObject bObj = bankArr.getJSONObject(i);
+                banksList.add(bObj.getString("name"));
+                bankIds.add(bObj.getString("id"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        ArrayAdapter<String> payAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, banksList);
+        payAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerPaymentMode.setAdapter(payAdapter);
+
         btnCancel.setOnClickListener(v -> finish());
 
         btnAdd.setOnClickListener(v -> {
@@ -81,7 +105,6 @@ public class AddExpenseActivity extends Activity {
 
                 SharedPreferences sPrefs = getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
                 String expensesJsonStr = sPrefs.getString("expenses", "[]");
-
                 JSONArray expensesArray = new JSONArray(expensesJsonStr);
 
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -89,17 +112,41 @@ public class AddExpenseActivity extends Activity {
                 Date now = new Date();
 
                 JSONObject newExpense = new JSONObject();
-                newExpense.put("id", String.valueOf(System.currentTimeMillis()));
+                newExpense.put("id", UUID.randomUUID().toString());
                 newExpense.put("amount", amount);
                 newExpense.put("description", description);
                 newExpense.put("category", selectedCategory);
-                newExpense.put("paymentMode", "Not Specified");
+                
+                String selectedPayMode = spinnerPaymentMode.getSelectedItem().toString();
+                String selectedPayModeId = bankIds.get(spinnerPaymentMode.getSelectedItemPosition());
+                String remark = editRemark.getText().toString();
+                
+                newExpense.put("paymentMode", selectedPayMode);
+                newExpense.put("remark", remark);
                 newExpense.put("date", dateFormat.format(now));
                 newExpense.put("time", timeFormat.format(now));
 
                 expensesArray.put(newExpense);
-
                 sPrefs.edit().putString("expenses", expensesArray.toString()).apply();
+
+                // Handle Bank Transaction for balance update
+                if (!selectedPayModeId.equals("cash")) {
+                    String trxsJsonStr = sPrefs.getString("bankTransactions", "[]");
+                    JSONArray trxsArray = new JSONArray(trxsJsonStr);
+                    
+                    JSONObject newTrx = new JSONObject();
+                    newTrx.put("id", System.currentTimeMillis() + "_out");
+                    newTrx.put("bankId", selectedPayModeId);
+                    newTrx.put("amount", amount);
+                    newTrx.put("type", "out");
+                    newTrx.put("description", description);
+                    newTrx.put("category", selectedCategory);
+                    newTrx.put("date", dateFormat.format(now));
+                    newTrx.put("time", timeFormat.format(now));
+                    
+                    trxsArray.put(newTrx);
+                    sPrefs.edit().putString("bankTransactions", trxsArray.toString()).apply();
+                }
 
                 Toast.makeText(this, "Expense Added!", Toast.LENGTH_SHORT).show();
                 finish();

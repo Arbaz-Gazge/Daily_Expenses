@@ -51,6 +51,32 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:backgroundTint="#ffffff"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Payment Mode"
+        android:textSize="12sp"
+        android:textColor="#dddddd"
+        android:layout_marginBottom="4dp" />
+
+    <Spinner
+        android:id="@+id/spinnerPaymentMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="#ffffff"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/editRemark"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Remark (Optional)"
+        android:inputType="text"
+        android:textColorHint="#dddddd"
+        android:textColor="#ffffff"
+        android:backgroundTint="#ffffff"
         android:layout_marginBottom="24dp" />
 
     <LinearLayout
