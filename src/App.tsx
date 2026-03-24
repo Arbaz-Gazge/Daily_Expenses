@@ -193,6 +193,7 @@ function App() {
   const [selectedBankId, setSelectedBankId] = useState<string | null>(null);
   const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([]);
   const [editingBankTransactionId, setEditingBankTransactionId] = useState<string | null>(null);
+  const [bankActionType, setBankActionType] = useState<'in' | 'out'>('in');
 
   // Auto Pay States
   const [autoPays, setAutoPays] = useState<AutoPay[]>([]);
@@ -766,6 +767,7 @@ function App() {
     setDepositAmount(tx.amount.toString());
     setDepositDescription(tx.description);
     setDepositCategory(tx.category);
+    setBankActionType(tx.type as 'in' | 'out');
     setShowDepositModal(true);
     setSelectedBankId(tx.bankId);
   };
@@ -787,14 +789,14 @@ function App() {
           }
           // Apply new transaction effect on new bank
           if (b.id === selectedBankId) {
-            updatedBalance += (oldTrx.type === 'in' ? amountNum : -amountNum);
+            updatedBalance += (bankActionType === 'in' ? amountNum : -amountNum);
           }
           return { ...b, balance: updatedBalance };
         }));
 
         setBankTransactions(prev => prev.map(t =>
           t.id === editingBankTransactionId
-            ? { ...t, bankId: selectedBankId, amount: amountNum, description: depositDescription, category: depositCategory }
+            ? { ...t, bankId: selectedBankId, amount: amountNum, type: bankActionType, description: depositDescription, category: depositCategory }
             : t
         ));
       }
@@ -802,18 +804,18 @@ function App() {
       // Handle New
       setBanks(prev => prev.map(b =>
         b.id === selectedBankId
-          ? { ...b, balance: b.balance + amountNum }
+          ? { ...b, balance: b.balance + (bankActionType === 'in' ? amountNum : -amountNum) }
           : b
       ));
 
       const now = new Date();
       const trx: BankTransaction = {
-        id: now.getTime().toString() + '_in',
+        id: now.getTime().toString() + '_' + bankActionType,
         bankId: selectedBankId,
         amount: amountNum,
-        type: 'in',
-        description: depositDescription || 'Deposit',
-        category: depositCategory || 'Cash In',
+        type: bankActionType,
+        description: depositDescription || (bankActionType === 'in' ? 'Deposit' : 'Withdrawal'),
+        category: depositCategory || (bankActionType === 'in' ? 'Cash In' : 'Cash Out'),
         date: getLocalDateStr(now),
         time: getLocalTimeStr(now)
       };
@@ -2000,10 +2002,21 @@ function App() {
                             className="cash-in-btn large"
                             onClick={() => {
                               setSelectedBankId(bank.id);
+                              setBankActionType('in');
                               setShowDepositModal(true);
                             }}
                           >
                             + Add Money
+                          </button>
+                          <button
+                            className="cash-out-btn large"
+                            onClick={() => {
+                              setSelectedBankId(bank.id);
+                              setBankActionType('out');
+                              setShowDepositModal(true);
+                            }}
+                          >
+                            - Cash Out
                           </button>
                         </div>
                       </div>
@@ -2543,12 +2556,12 @@ function App() {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <h3>Cash In (Deposit)</h3>
+              <h3>{bankActionType === 'in' ? 'Cash In (Deposit)' : 'Cash Out (Withdraw)'}</h3>
               <button className="close-btn" style={{ position: 'static', color: 'var(--text-primary)' }} onClick={() => setShowDepositModal(false)}>&times;</button>
             </div>
             <form onSubmit={handleDeposit}>
               <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem' }}>
-                <label>Deposit Amount (₹)</label>
+                <label>{bankActionType === 'in' ? 'Deposit' : 'Withdrawal'} Amount (₹)</label>
                 <input
                   type="number"
                   value={depositAmount}
@@ -2565,7 +2578,7 @@ function App() {
                   type="text"
                   value={depositDescription}
                   onChange={e => setDepositDescription(e.target.value)}
-                  placeholder="e.g. Salary, Gift"
+                  placeholder={bankActionType === 'in' ? "e.g. Salary, Gift" : "e.g. ATM, Transfer"}
                   className="modal-input"
                 />
               </div>
@@ -2611,7 +2624,13 @@ function App() {
               </div>
               <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
                 <button type="button" className="modal-btn cancel" onClick={() => setShowDepositModal(false)}>Cancel</button>
-                <button type="submit" className="modal-btn primary">Deposit</button>
+                <button 
+                  type="submit" 
+                  className="modal-btn primary"
+                  style={{ background: bankActionType === 'in' ? '' : '#cb1a3e' }}
+                >
+                  {bankActionType === 'in' ? 'Deposit' : 'Withdraw'}
+                </button>
               </div>
             </form>
           </div>
