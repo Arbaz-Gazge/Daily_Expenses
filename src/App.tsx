@@ -194,6 +194,8 @@ function App() {
   const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([]);
   const [editingBankTransactionId, setEditingBankTransactionId] = useState<string | null>(null);
   const [bankActionType, setBankActionType] = useState<'in' | 'out'>('in');
+  const [depositDate, setDepositDate] = useState('');
+  const [depositTime, setDepositTime] = useState('');
 
   // Auto Pay States
   const [autoPays, setAutoPays] = useState<AutoPay[]>([]);
@@ -767,6 +769,8 @@ function App() {
     setDepositAmount(tx.amount.toString());
     setDepositDescription(tx.description);
     setDepositCategory(tx.category);
+    setDepositDate(tx.date);
+    setDepositTime(tx.time);
     setBankActionType(tx.type as 'in' | 'out');
     setShowDepositModal(true);
     setSelectedBankId(tx.bankId);
@@ -796,7 +800,7 @@ function App() {
 
         setBankTransactions(prev => prev.map(t =>
           t.id === editingBankTransactionId
-            ? { ...t, bankId: selectedBankId, amount: amountNum, type: bankActionType, description: depositDescription, category: depositCategory }
+            ? { ...t, bankId: selectedBankId, amount: amountNum, type: bankActionType, description: depositDescription, category: depositCategory, date: depositDate || t.date, time: depositTime || t.time }
             : t
         ));
       }
@@ -816,8 +820,8 @@ function App() {
         type: bankActionType,
         description: depositDescription || (bankActionType === 'in' ? 'Deposit' : 'Withdrawal'),
         category: depositCategory || (bankActionType === 'in' ? 'Cash In' : 'Cash Out'),
-        date: getLocalDateStr(now),
-        time: getLocalTimeStr(now)
+        date: depositDate || getLocalDateStr(now),
+        time: depositTime || getLocalTimeStr(now)
       };
       setBankTransactions(prev => [trx, ...prev]);
     }
@@ -825,6 +829,8 @@ function App() {
     setDepositAmount('');
     setDepositDescription('');
     setDepositCategory('');
+    setDepositDate('');
+    setDepositTime('');
     setShowDepositModal(false);
     setSelectedBankId(null);
     setEditingBankTransactionId(null);
@@ -2001,8 +2007,11 @@ function App() {
                           <button
                             className="cash-in-btn large"
                             onClick={() => {
+                              const now = new Date();
                               setSelectedBankId(bank.id);
                               setBankActionType('in');
+                              setDepositDate(getLocalDateStr(now));
+                              setDepositTime(getLocalTimeStr(now));
                               setShowDepositModal(true);
                             }}
                           >
@@ -2011,8 +2020,11 @@ function App() {
                           <button
                             className="cash-out-btn large"
                             onClick={() => {
+                              const now = new Date();
                               setSelectedBankId(bank.id);
                               setBankActionType('out');
+                              setDepositDate(getLocalDateStr(now));
+                              setDepositTime(getLocalTimeStr(now));
                               setShowDepositModal(true);
                             }}
                           >
@@ -2588,6 +2600,26 @@ function App() {
                   placeholder={bankActionType === 'in' ? "e.g. Salary, Gift" : "e.g. ATM, Transfer"}
                   className="modal-input"
                 />
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <div className="form-group" style={{ flex: 1, textAlign: 'left' }}>
+                  <label>Date</label>
+                  <input
+                    type="date"
+                    value={depositDate}
+                    onChange={e => setDepositDate(e.target.value)}
+                    className="modal-input"
+                  />
+                </div>
+                <div className="form-group" style={{ flex: 1, textAlign: 'left' }}>
+                  <label>Time</label>
+                  <input
+                    type="time"
+                    value={depositTime}
+                    onChange={e => setDepositTime(e.target.value)}
+                    className="modal-input"
+                  />
+                </div>
               </div>
               <div className="form-group" style={{ textAlign: 'left', marginTop: '1rem', position: 'relative' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
