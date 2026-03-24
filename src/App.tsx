@@ -2144,6 +2144,13 @@ function App() {
                           const totalIn = filteredList.filter(t => t.type === 'in').reduce((sum, t) => sum + t.amount, 0);
                           const totalOut = filteredList.filter(t => t.type === 'out').reduce((sum, t) => sum + t.amount, 0);
 
+                          // Sort filteredList by date and time (newest first)
+                          filteredList.sort((a, b) => {
+                            const dateA = new Date(`${a.date}T${a.time}`);
+                            const dateB = new Date(`${b.date}T${b.time}`);
+                            return dateB.getTime() - dateA.getTime();
+                          });
+
                           return (
                             <>
                               <div className="filtered-summary-cards" style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.25rem' }}>
