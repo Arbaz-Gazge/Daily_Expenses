@@ -3,80 +3,87 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
+    android:padding="20dp"
     android:background="@drawable/widget_bg"
-    android:layout_margin="24dp">
+    android:layout_margin="16dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Quick Add Expense"
-        android:textSize="20sp"
+        android:textSize="18sp"
         android:textStyle="bold"
         android:textColor="#ffffff"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="20dp" />
 
     <EditText
         android:id="@+id/editAmount"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Amount (0.00)"
+        android:hint="Amount (₹ 0.00)"
         android:inputType="numberDecimal"
-        android:textColorHint="#dddddd"
+        android:textColorHint="#94a3b8"
         android:textColor="#ffffff"
-        android:backgroundTint="#ffffff"
-        android:layout_marginBottom="8dp" />
+        android:background="@drawable/input_bg"
+        android:textSize="16sp"
+        android:layout_marginBottom="12dp" />
 
     <EditText
         android:id="@+id/editDescription"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Description"
+        android:hint="What did you buy?"
         android:inputType="text"
-        android:textColorHint="#dddddd"
+        android:textColorHint="#94a3b8"
         android:textColor="#ffffff"
-        android:backgroundTint="#ffffff"
+        android:background="@drawable/input_bg"
+        android:textSize="16sp"
         android:layout_marginBottom="16dp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Category"
-        android:textSize="12sp"
-        android:textColor="#dddddd"
-        android:layout_marginBottom="4dp" />
+        android:text="CATEGORY"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:textColor="#94a3b8"
+        android:layout_marginBottom="4dp"
+        android:layout_marginStart="4dp" />
 
     <Spinner
         android:id="@+id/spinnerCategory"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:backgroundTint="#ffffff"
-        android:layout_marginBottom="16dp" />
+        android:background="@drawable/input_bg"
+        android:layout_marginBottom="12dp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Payment Mode"
-        android:textSize="12sp"
-        android:textColor="#dddddd"
-        android:layout_marginBottom="4dp" />
+        android:text="PAYMENT MODE"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:textColor="#94a3b8"
+        android:layout_marginBottom="4dp"
+        android:layout_marginStart="4dp" />
 
     <Spinner
         android:id="@+id/spinnerPaymentMode"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:backgroundTint="#ffffff"
-        android:layout_marginBottom="16dp" />
+        android:background="@drawable/input_bg"
+        android:layout_marginBottom="12dp" />
 
     <EditText
         android:id="@+id/editRemark"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Remark (Optional)"
+        android:hint="Add a remark (Optional)"
         android:inputType="text"
-        android:textColorHint="#dddddd"
+        android:textColorHint="#94a3b8"
         android:textColor="#ffffff"
-        android:backgroundTint="#ffffff"
+        android:background="@drawable/input_bg"
+        android:textSize="14sp"
         android:layout_marginBottom="24dp" />
 
     <LinearLayout
@@ -87,21 +94,24 @@
         <Button
             android:id="@+id/btnCancel"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
             android:layout_weight="1"
             android:text="Cancel"
-            android:backgroundTint="#ff4444"
+            android:textAllCaps="false"
+            android:backgroundTint="#ef4444"
             android:textColor="#ffffff"
-            android:layout_marginEnd="8dp" />
+            android:layout_marginEnd="10dp" />
 
         <Button
             android:id="@+id/btnAdd"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="50dp"
             android:layout_weight="1"
-            android:text="Add"
-            android:backgroundTint="#ffffff"
-            android:textColor="#11998e" />
+            android:text="Add Expense"
+            android:textAllCaps="false"
+            android:backgroundTint="#20e3b2"
+            android:textColor="#0f172a"
+            android:textStyle="bold" />
     </LinearLayout>
 
 </LinearLayout>

@@ -62,8 +62,8 @@ public class AddExpenseActivity extends Activity {
             ));
         }
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, categoriesList);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, categoriesList);
+        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
         spinnerCategory.setAdapter(adapter);
 
         // Load Banks for Payment Mode
@@ -84,8 +84,8 @@ public class AddExpenseActivity extends Activity {
             e.printStackTrace();
         }
 
-        ArrayAdapter<String> payAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, banksList);
-        payAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        ArrayAdapter<String> payAdapter = new ArrayAdapter<>(this, R.layout.spinner_item, banksList);
+        payAdapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
         spinnerPaymentMode.setAdapter(payAdapter);
 
         btnCancel.setOnClickListener(v -> finish());
