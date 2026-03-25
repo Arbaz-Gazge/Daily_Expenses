@@ -1588,7 +1588,12 @@ function App() {
                           ))}
                           {banks.length > 0 && <div className="popup-header" style={{ borderTop: '1px solid var(--border-color)', borderRadius: 0, padding: '0.75rem 1.25rem', fontSize: '0.9rem', background: 'var(--bg-primary)', color: 'var(--text-tertiary)' }}>Bank Accounts</div>}
                           {banks.map(bank => (
-                            <li key={bank.id} onClick={() => { setPaymentMode(bank.name); setActiveDropdown(null); }}>{bank.name}</li>
+                            <li key={bank.id} onClick={() => { setPaymentMode(bank.name); setActiveDropdown(null); }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                <span>{bank.name}</span>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--accent-color)', fontWeight: 600 }}>₹{bank.balance.toFixed(2)}</span>
+                              </div>
+                            </li>
                           ))}
                         </ul>
                       </div>

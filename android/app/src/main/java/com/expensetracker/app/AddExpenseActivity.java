@@ -69,15 +69,20 @@ public class AddExpenseActivity extends Activity {
         // Load Banks for Payment Mode
         String savedBanks = prefs.getString("banks", "[]");
         final List<String> banksList = new ArrayList<>();
+        final List<String> originalBankNames = new ArrayList<>();
         final List<String> bankIds = new ArrayList<>();
         banksList.add("Cash");
+        originalBankNames.add("Cash");
         bankIds.add("cash");
         
         try {
             JSONArray bankArr = new JSONArray(savedBanks);
             for (int i = 0; i < bankArr.length(); i++) {
                 JSONObject bObj = bankArr.getJSONObject(i);
-                banksList.add(bObj.getString("name"));
+                String name = bObj.getString("name");
+                double balance = bObj.optDouble("balance", 0.0);
+                banksList.add(name + " (₹" + String.format("%.2f", balance) + ")");
+                originalBankNames.add(name);
                 bankIds.add(bObj.getString("id"));
             }
         } catch (Exception e) {
@@ -117,7 +122,7 @@ public class AddExpenseActivity extends Activity {
                 newExpense.put("description", description);
                 newExpense.put("category", selectedCategory);
                 
-                String selectedPayMode = spinnerPaymentMode.getSelectedItem().toString();
+                String selectedPayMode = originalBankNames.get(spinnerPaymentMode.getSelectedItemPosition());
                 String selectedPayModeId = bankIds.get(spinnerPaymentMode.getSelectedItemPosition());
                 String remark = editRemark.getText().toString();
                 
