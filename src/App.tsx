@@ -1197,7 +1197,7 @@ function App() {
   const totalExpense = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   const handleBackup = async () => {
-    const dataStr = JSON.stringify({ expenses, categories, settings, banks, bankTransactions, depositCategories }, null, 2);
+    const dataStr = JSON.stringify({ expenses, categories, settings, banks, bankTransactions, depositCategories, autoPays }, null, 2);
     const fileName = `expense_backup_${new Date().toISOString().split('T')[0]}.json`;
 
     if (Capacitor.isNativePlatform()) {
@@ -1244,6 +1244,7 @@ function App() {
         if (data.banks) setBanks(data.banks);
         if (data.bankTransactions) setBankTransactions(data.bankTransactions);
         if (data.depositCategories) setDepositCategories(data.depositCategories);
+        if (data.autoPays) setAutoPays(data.autoPays);
         showAlert('Data restored successfully!');
       } catch (err) {
         showAlert('Invalid backup file format.');
