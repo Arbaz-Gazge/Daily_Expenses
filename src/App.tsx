@@ -8,6 +8,16 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import './App.css';
 
+interface EditRecord {
+  id: string;
+  timestamp: string;
+  changes: {
+    field: string;
+    old: any;
+    new: any;
+  }[];
+}
+
 interface Expense {
   id: string;
   amount: number;
@@ -17,6 +27,8 @@ interface Expense {
   category?: string;
   paymentMode?: string;
   remark?: string;
+  isEdited?: boolean;
+  history?: EditRecord[];
 }
 
 interface Bank {
@@ -67,6 +79,45 @@ function App() {
   const [time, setTime] = useState('');
   const [paymentMode, setPaymentMode] = useState('');
   const [remark, setRemark] = useState('');
+
+  const renderTimelineModal = () => {
+    if (!showTimelineModal || !selectedTimelineExpense) return null;
+
+    return (
+      <div className="modal-overlay" style={{ zIndex: 7000 }}>
+        <div className="modal timeline-modal" style={{ maxWidth: '90%', width: '400px' }}>
+          <div className="modal-header">
+            <h3>Edit Timeline</h3>
+            <button className="close-btn" style={{ position: 'static' }} onClick={() => setShowTimelineModal(false)}>&times;</button>
+          </div>
+          <div className="timeline-content" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '1rem' }}>
+            {(!selectedTimelineExpense.history || selectedTimelineExpense.history.length === 0) ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>No edit history found.</p>
+            ) : (
+              <div className="timeline-list">
+                {[...selectedTimelineExpense.history].reverse().map((record) => (
+                  <div key={record.id} className="timeline-item" style={{ marginBottom: '1.5rem', paddingLeft: '1rem', borderLeft: '2px solid var(--accent-color)', position: 'relative' }}>
+                    <div style={{ position: 'absolute', left: '-5px', top: '0', width: '8px', height: '8px', background: 'var(--accent-color)', borderRadius: '50%' }}></div>
+                    <div className="timeline-time" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                      {record.timestamp}
+                    </div>
+                    {record.changes.map((change, cIdx) => (
+                      <div key={cIdx} className="timeline-change" style={{ fontSize: '0.9rem', marginBottom: '0.25rem', color: 'var(--text-primary)' }}>
+                        <span style={{ fontWeight: 'bold', color: 'var(--accent-color)' }}>{change.field}:</span> {change.old} <span style={{ color: 'var(--text-tertiary)' }}>→</span> <span style={{ fontWeight: 'bold' }}>{change.new}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="modal-actions">
+            <button className="modal-btn primary" onClick={() => setShowTimelineModal(false)}>Close</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderTransactionDetailModal = () => {
     if (!viewingTrx) return null;
@@ -244,6 +295,8 @@ function App() {
   const [editingDepositCategoryIdx, setEditingDepositCategoryIdx] = useState<number | null>(null);
   const [newDepositCategory, setNewDepositCategory] = useState('');
   const [viewingBankId, setViewingBankId] = useState<string | null>(null);
+  const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [selectedTimelineExpense, setSelectedTimelineExpense] = useState<Expense | null>(null);
 
   const evaluateExpression = (expr: string) => {
     try {
@@ -632,11 +685,68 @@ function App() {
     e.preventDefault();
     if (!amount || !description || !date || !time) return;
 
-    // Evaluate math in amount if any
     const finalAmount = evaluateExpression(amount);
     const amountNum = parseFloat(finalAmount);
+    const now = new Date();
+    const timestamp = now.toLocaleString();
 
     if (editExpenseId) {
+      const oldExp = expenses.find(exp => exp.id === editExpenseId);
+      if (!oldExp) return;
+
+      // Track Changes
+      const changes: { field: string; old: any; new: any }[] = [];
+      if (oldExp.amount !== amountNum) changes.push({ field: 'Amount', old: oldExp.amount, new: amountNum });
+      if (oldExp.description !== description) changes.push({ field: 'Description', old: oldExp.description, new: description });
+      if (oldExp.category !== category) changes.push({ field: 'Category', old: oldExp.category || 'Uncategorized', new: category || 'Uncategorized' });
+      if (oldExp.paymentMode !== paymentMode) changes.push({ field: 'Payment Mode', old: oldExp.paymentMode || 'Not Specified', new: paymentMode || 'Not Specified' });
+      if (oldExp.date !== date) changes.push({ field: 'Date', old: oldExp.date, new: date });
+      if (oldExp.time !== time) changes.push({ field: 'Time', old: oldExp.time, new: time });
+      if (oldExp.remark !== remark) changes.push({ field: 'Remark', old: oldExp.remark || '', new: remark || '' });
+
+      const editRecord: EditRecord = {
+        id: Date.now().toString(),
+        timestamp: timestamp,
+        changes: changes
+      };
+
+      const updatedHistory = [...(oldExp.history || []), editRecord];
+
+      // Handle Bank Sync for Edits
+      const oldBank = banks.find(b => b.name === oldExp.paymentMode);
+      const newBank = banks.find(b => b.name === (paymentMode || 'Not Specified'));
+
+      setBanks(prev => prev.map(b => {
+        let bal = b.balance;
+        // Revert old transaction
+        if (oldBank && b.id === oldBank.id) bal += oldExp.amount;
+        // Apply new transaction
+        if (newBank && b.id === newBank.id) bal -= amountNum;
+        return { ...b, balance: bal };
+      }));
+
+      // Update Bank Transaction
+      const trxId = editExpenseId + '_out';
+      if (newBank) {
+        const updatedTrx: BankTransaction = {
+          id: trxId,
+          bankId: newBank.id,
+          amount: amountNum,
+          type: 'out',
+          description,
+          category: category || 'Uncategorized',
+          date,
+          time
+        };
+        setBankTransactions(prev => {
+          const filtered = prev.filter(t => t.id !== trxId);
+          return [updatedTrx, ...filtered];
+        });
+      } else if (oldBank) {
+        // If payment mode switched from bank to cash/else, remove the bank transaction
+        setBankTransactions(prev => prev.filter(t => t.id !== trxId));
+      }
+
       setExpenses(expenses.map(exp =>
         exp.id === editExpenseId
           ? {
@@ -648,13 +758,16 @@ function App() {
             time,
             paymentMode: paymentMode || 'Not Specified',
             remark,
+            isEdited: changes.length > 0 ? true : exp.isEdited,
+            history: changes.length > 0 ? updatedHistory : exp.history
           }
           : exp
       ));
       setEditExpenseId(null);
     } else {
+      const expId = Date.now().toString();
       const newExpense: Expense = {
-        id: Date.now().toString(),
+        id: expId,
         amount: amountNum,
         description,
         category: category || 'Uncategorized',
@@ -662,21 +775,19 @@ function App() {
         time,
         paymentMode: paymentMode || 'Not Specified',
         remark,
+        isEdited: false,
+        history: []
       };
 
-      // Handle bank balance deduction
+      // Handle bank deduction for new expense
       const sourceBank = banks.find(b => b.name === (paymentMode || 'Not Specified'));
       if (sourceBank) {
         setBanks(prev => prev.map(b =>
-          b.id === sourceBank.id
-            ? { ...b, balance: b.balance - amountNum }
-            : b
+          b.id === sourceBank.id ? { ...b, balance: b.balance - amountNum } : b
         ));
 
-        // Create transaction record
-        const now = new Date();
         const trx: BankTransaction = {
-          id: Date.now().toString() + '_out',
+          id: expId + '_out',
           bankId: sourceBank.id,
           amount: amountNum,
           type: 'out',
@@ -1870,10 +1981,13 @@ function App() {
                                 )}
                                 <div style={{ width: '100%', height: '4px' }}></div>
                                 {new Date(expense.date).toLocaleDateString('en-US', { weekday: 'long' })}, {expense.date.split('-').reverse().join('/')} • {formatTime(expense.time)}
-                                {expense.remark && (
+                                 {expense.remark && (
                                   <div className="expense-remark">
                                     <span className="remark-icon">📝</span> {expense.remark}
                                   </div>
+                                )}
+                                {expense.isEdited && (
+                                  <span className="edited-badge" style={{ display: 'inline-block', marginTop: '0.4rem', background: 'rgba(74, 85, 104, 0.15)', color: '#4a5568', fontSize: '0.7rem', fontWeight: 'bold', padding: '0.15rem 0.4rem', borderRadius: '12px', border: '1px solid #4a5568' }}>EDITED</span>
                                 )}
                               </span>
                             </div>
@@ -1885,6 +1999,9 @@ function App() {
                                   <>
                                     <button type="button" onClick={(e) => { e.stopPropagation(); handleEdit(expense); }} style={{ background: '#cbd5e0', color: '#2d3748', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
                                     <button type="button" onClick={(e) => { e.stopPropagation(); setDeleteId(expense.id); }} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
+                                    {expense.isEdited && (
+                                      <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedTimelineExpense(expense); setShowTimelineModal(true); }} style={{ background: '#4a5568', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="View Timeline">🕒</button>
+                                    )}
                                   </>
                                 )}
                               </div>
@@ -2538,6 +2655,7 @@ function App() {
 
       {/* Transaction Detail Modal */}
       {renderTransactionDetailModal()}
+      {renderTimelineModal()}
       {/* Bank Manager Modals */}
       {showBankModal && (
         <div className="modal-overlay">
