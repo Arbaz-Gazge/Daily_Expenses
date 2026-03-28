@@ -2294,7 +2294,21 @@ function App() {
                         </div>
 
                         {(() => {
-                          let filteredList = bankTransactions.filter(t => t.bankId === bank.id);
+                          const bankTrxs = bankTransactions.filter(t => t.bankId === bank.id)
+                            .sort((a, b) => {
+                              if (a.date !== b.date) return b.date.localeCompare(a.date);
+                              return b.time.localeCompare(a.time);
+                            });
+
+                          let currentRunBalance = bank.balance;
+                          const trxWithBalance = bankTrxs.map(t => {
+                            const balanceAfter = currentRunBalance;
+                            const balanceBefore = t.type === 'in' ? balanceAfter - t.amount : balanceAfter + t.amount;
+                            currentRunBalance = balanceBefore;
+                            return { ...t, balanceBefore, balanceAfter };
+                          });
+
+                          let filteredList = trxWithBalance;
 
                           // Type Filter
                           if (bankTypeFilter !== 'All') {
@@ -2339,13 +2353,6 @@ function App() {
                           const totalIn = filteredList.filter(t => t.type === 'in').reduce((sum, t) => sum + t.amount, 0);
                           const totalOut = filteredList.filter(t => t.type === 'out').reduce((sum, t) => sum + t.amount, 0);
 
-                          // Sort filteredList by date and time (newest first)
-                          filteredList.sort((a, b) => {
-                            const dateA = new Date(`${a.date}T${a.time}`);
-                            const dateB = new Date(`${b.date}T${b.time}`);
-                            return dateB.getTime() - dateA.getTime();
-                          });
-
                           return (
                             <>
                               <div className="filtered-summary-cards" style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.25rem' }}>
@@ -2382,7 +2389,10 @@ function App() {
                                           {trx.isEdited && <span className="edited-badge sm" style={{ marginLeft: '0.5rem', opacity: 0.7 }}>✎ Edited</span>}
                                         </div>
                                         <div className={`trx-stacked-amount ${trx.type}`}>
-                                          {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                          <div style={{ fontWeight: 800 }}>{trx.type === 'in' ? '+' : '-'}₹{trx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                          <div style={{ fontSize: '0.7rem', opacity: 0.8, color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                                            Prev Bal: ₹{(trx as any).balanceBefore?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
