@@ -46,6 +46,8 @@ interface BankTransaction {
   category: string;
   date: string;
   time: string;
+  isEdited?: boolean;
+  history?: EditRecord[];
 }
 
 interface AutoPay {
@@ -81,7 +83,7 @@ function App() {
   const [remark, setRemark] = useState('');
 
   const renderTimelineModal = () => {
-    if (!showTimelineModal || !selectedTimelineExpense) return null;
+    if (!showTimelineModal || !selectedTimelineItem) return null;
 
     return (
       <div className="modal-overlay" style={{ zIndex: 7000 }}>
@@ -91,11 +93,11 @@ function App() {
             <button className="close-btn" style={{ position: 'static' }} onClick={() => setShowTimelineModal(false)}>&times;</button>
           </div>
           <div className="timeline-content" style={{ maxHeight: '60vh', overflowY: 'auto', padding: '1rem' }}>
-            {(!selectedTimelineExpense.history || selectedTimelineExpense.history.length === 0) ? (
+            {(!selectedTimelineItem.history || selectedTimelineItem.history.length === 0) ? (
               <p style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>No edit history found.</p>
             ) : (
               <div className="timeline-list">
-                {[...selectedTimelineExpense.history].reverse().map((record) => (
+                {[...selectedTimelineItem.history].reverse().map((record) => (
                   <div key={record.id} className="timeline-item" style={{ marginBottom: '1.5rem', paddingLeft: '1rem', borderLeft: '2px solid var(--accent-color)', position: 'relative' }}>
                     <div style={{ position: 'absolute', left: '-5px', top: '0', width: '8px', height: '8px', background: 'var(--accent-color)', borderRadius: '50%' }}></div>
                     <div className="timeline-time" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 'bold', marginBottom: '0.5rem' }}>
@@ -173,6 +175,9 @@ function App() {
               </div>
 
               <div className="full-page-footer">
+                {viewingTrx.isEdited && (
+                  <button className="full-action-btn timeline" style={{ background: '#4a5568', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.5rem', width: '100%', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem' }} onClick={() => { setSelectedTimelineItem(viewingTrx); setShowTimelineModal(true); }}>🕒 View History Timeline</button>
+                )}
                 <button className="full-action-btn edit" onClick={() => { startEditDeposit(viewingTrx); setViewingTrx(null); }}>✎ Edit This Entry</button>
                 <button className="full-action-btn delete" onClick={() => { deleteBankTransaction(viewingTrx); setViewingTrx(null); }}>✕ Delete This Entry</button>
               </div>
@@ -296,7 +301,7 @@ function App() {
   const [newDepositCategory, setNewDepositCategory] = useState('');
   const [viewingBankId, setViewingBankId] = useState<string | null>(null);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
-  const [selectedTimelineExpense, setSelectedTimelineExpense] = useState<Expense | null>(null);
+  const [selectedTimelineItem, setSelectedTimelineItem] = useState<Expense | BankTransaction | null>(null);
 
   const evaluateExpression = (expr: string) => {
     try {
@@ -896,6 +901,28 @@ function App() {
       // Handle Update
       const oldTrx = bankTransactions.find(t => t.id === editingBankTransactionId);
       if (oldTrx) {
+        // Track History
+        const now = new Date();
+        const timestamp = now.toLocaleString();
+        const changes: { field: string; old: any; new: any }[] = [];
+        if (oldTrx.amount !== amountNum) changes.push({ field: 'Amount', old: oldTrx.amount, new: amountNum });
+        if (oldTrx.description !== depositDescription) changes.push({ field: 'Description', old: oldTrx.description, new: depositDescription });
+        if (oldTrx.category !== depositCategory) changes.push({ field: 'Category', old: oldTrx.category, new: depositCategory });
+        if (oldTrx.date !== (depositDate || oldTrx.date)) changes.push({ field: 'Date', old: oldTrx.date, new: depositDate || oldTrx.date });
+        if (oldTrx.time !== (depositTime || oldTrx.time)) changes.push({ field: 'Time', old: oldTrx.time, new: depositTime || oldTrx.time });
+        if (oldTrx.bankId !== selectedBankId) {
+          const oldB = banks.find(b => b.id === oldTrx.bankId);
+          const newB = banks.find(b => b.id === selectedBankId);
+          changes.push({ field: 'Bank', old: oldB?.name || 'Unknown', new: newB?.name || 'Unknown' });
+        }
+
+        const editRecord: EditRecord = {
+          id: Date.now().toString(),
+          timestamp: timestamp,
+          changes: changes
+        };
+        const updatedHistory = [...(oldTrx.history || []), editRecord];
+
         setBanks(prev => prev.map(b => {
           let updatedBalance = b.balance;
           // Revert old transaction effect on old bank
@@ -911,9 +938,42 @@ function App() {
 
         setBankTransactions(prev => prev.map(t =>
           t.id === editingBankTransactionId
-            ? { ...t, bankId: selectedBankId, amount: amountNum, type: bankActionType, description: depositDescription, category: depositCategory, date: depositDate || t.date, time: depositTime || t.time }
+            ? { 
+                ...t, 
+                bankId: selectedBankId, 
+                amount: amountNum, 
+                type: bankActionType, 
+                description: depositDescription, 
+                category: depositCategory, 
+                date: depositDate || t.date, 
+                time: depositTime || t.time,
+                isEdited: changes.length > 0 ? true : t.isEdited,
+                history: changes.length > 0 ? updatedHistory : t.history
+              }
             : t
         ));
+
+        // SYNC BACK TO EXPENSES
+        if (editingBankTransactionId.endsWith('_out')) {
+          const expenseId = editingBankTransactionId.replace('_out', '');
+          const newBank = banks.find(b => b.id === selectedBankId);
+          setExpenses(prev => prev.map(exp => {
+            if (exp.id === expenseId) {
+              return {
+                ...exp,
+                amount: amountNum,
+                description: depositDescription,
+                category: depositCategory,
+                date: depositDate || exp.date,
+                time: depositTime || exp.time,
+                paymentMode: newBank?.name || exp.paymentMode,
+                isEdited: true,
+                history: [...(exp.history || []), editRecord]
+              };
+            }
+            return exp;
+          }));
+        }
       }
     } else {
       // Handle New
@@ -2000,7 +2060,7 @@ function App() {
                                     <button type="button" onClick={(e) => { e.stopPropagation(); handleEdit(expense); }} style={{ background: '#cbd5e0', color: '#2d3748', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
                                     <button type="button" onClick={(e) => { e.stopPropagation(); setDeleteId(expense.id); }} style={{ background: '#fc8181', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
                                     {expense.isEdited && (
-                                      <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedTimelineExpense(expense); setShowTimelineModal(true); }} style={{ background: '#4a5568', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="View Timeline">🕒</button>
+                                      <button type="button" onClick={(e) => { e.stopPropagation(); setSelectedTimelineItem(expense); setShowTimelineModal(true); }} style={{ background: '#4a5568', color: '#fff', border: 'none', padding: '0.25rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="View Timeline">🕒</button>
                                     )}
                                   </>
                                 )}
@@ -2319,6 +2379,7 @@ function App() {
                                         <div className="trx-long-description">{trx.description}</div>
                                         <div className="trx-date-time-sub" style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>
                                           {new Date(trx.date).toLocaleDateString('default', { day: '2-digit', month: 'short', year: 'numeric' })} • {formatTime(trx.time)}
+                                          {trx.isEdited && <span className="edited-badge sm" style={{ marginLeft: '0.5rem', opacity: 0.7 }}>✎ Edited</span>}
                                         </div>
                                         <div className={`trx-stacked-amount ${trx.type}`}>
                                           {trx.type === 'in' ? '+' : '-'}₹{trx.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
