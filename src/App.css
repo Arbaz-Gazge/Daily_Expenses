@@ -239,6 +239,8 @@ body.no-scroll {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 0.35rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .expense-datetime {
@@ -285,16 +287,16 @@ body.no-scroll {
 
 .expense-amount {
   font-weight: 800;
-  color: var(--accent-dark);
+  color: #be123c;
   font-size: 1.3rem;
-  background: linear-gradient(135deg, #11998e 0%, #0b3d3d 100%);
+  background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .dark-mode .expense-amount {
-  background: linear-gradient(135deg, #2dd4bf 0%, #0cebeb 100%);
+  background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

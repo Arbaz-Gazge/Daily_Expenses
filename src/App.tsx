@@ -2031,11 +2031,12 @@ function App() {
                             <div
                               className={`selection-checkbox ${selectedIds.includes(expense.id) ? 'checked' : ''}`}
                               onClick={(e) => { e.stopPropagation(); toggleSelection(expense.id); }}
+                              style={{ flexShrink: 0 }}
                             >
                               {selectedIds.includes(expense.id) && '✓'}
                             </div>
 
-                            <div className="expense-info" style={{ flex: 1 }}>
+                            <div className="expense-info" style={{ flex: 1, minWidth: 0 }}>
                               <h3 className="expense-desc">{expense.description}</h3>
                               <span className="expense-datetime">
                                 {expense.category && <span className="expense-category-badge">{expense.category}</span>}
@@ -2055,7 +2056,7 @@ function App() {
                               </span>
                             </div>
 
-                            <div className="expense-action" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                            <div className="expense-action" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', flexShrink: 0, paddingLeft: '0.5rem' }}>
                               <span className="expense-amount">₹{expense.amount.toFixed(2)}</span>
                               <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 {!selectedIds.length && (
