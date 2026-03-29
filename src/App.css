@@ -2824,3 +2824,43 @@ input:checked+.slider:before {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.card-actions {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.row-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  cursor: pointer;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.row-btn:active {
+  transform: scale(0.92);
+}
+
+.row-btn.edit:hover {
+  background: var(--accent-color);
+  color: #064e3b;
+  border-color: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(32, 227, 178, 0.3);
+}
+
+.row-btn.delete:hover {
+  background: #fff1f2;
+  color: #e11d48;
+  border-color: #fb7185;
+  box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2);
+}
