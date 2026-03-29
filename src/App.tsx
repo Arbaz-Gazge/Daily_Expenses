@@ -2360,13 +2360,13 @@ function App() {
                           return (
                             <>
                               <div className="filtered-summary-cards" style={{ display: 'flex', gap: '0.6rem', marginBottom: '1.25rem' }}>
-                                <div style={{ flex: 1, background: 'rgba(16, 185, 129, 0.1)', padding: '0.85rem', borderRadius: '14px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#10b981', textTransform: 'uppercase', marginBottom: '0.25rem', whiteSpace: 'nowrap' }}>{bankDateFilter !== 'All' ? bankDateFilter : 'Total'} in</div>
-                                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#10b981', letterSpacing: '-0.5px' }}>+₹{totalIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                <div style={{ flex: 1, background: 'var(--bg-secondary)', padding: '0.85rem', borderRadius: '14px', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}>
+                                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--income-green)', textTransform: 'uppercase', marginBottom: '0.25rem', whiteSpace: 'nowrap' }}>{bankDateFilter !== 'All' ? bankDateFilter : 'Total'} in</div>
+                                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--income-green)', letterSpacing: '-0.5px' }}>+₹{totalIn.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 </div>
-                                <div style={{ flex: 1, background: 'rgba(244, 63, 94, 0.1)', padding: '0.85rem', borderRadius: '14px', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
-                                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f43f5e', textTransform: 'uppercase', marginBottom: '0.25rem', whiteSpace: 'nowrap' }}>{bankDateFilter !== 'All' ? bankDateFilter : 'Total'} out</div>
-                                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#f43f5e', letterSpacing: '-0.5px' }}>-₹{totalOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                <div style={{ flex: 1, background: 'var(--bg-secondary)', padding: '0.85rem', borderRadius: '14px', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}>
+                                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--expense-red)', textTransform: 'uppercase', marginBottom: '0.25rem', whiteSpace: 'nowrap' }}>{bankDateFilter !== 'All' ? bankDateFilter : 'Total'} out</div>
+                                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--expense-red)', letterSpacing: '-0.5px' }}>-₹{totalOut.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                 </div>
                               </div>
 
