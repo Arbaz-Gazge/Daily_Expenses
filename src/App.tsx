@@ -733,17 +733,20 @@ function App() {
       // Update Bank Transaction
       const trxId = editExpenseId + '_out';
       if (newBank) {
-        const updatedTrx: BankTransaction = {
-          id: trxId,
-          bankId: newBank.id,
-          amount: amountNum,
-          type: 'out',
-          description,
-          category: category || 'Uncategorized',
-          date,
-          time
-        };
         setBankTransactions(prev => {
+          const oldTrx = prev.find(t => t.id === trxId);
+          const updatedTrx: BankTransaction = {
+            id: trxId,
+            bankId: newBank.id,
+            amount: amountNum,
+            type: 'out',
+            description,
+            category: category || 'Uncategorized',
+            date,
+            time,
+            isEdited: (changes.length > 0) ? true : (oldTrx?.isEdited || false),
+            history: (changes.length > 0) ? [...(oldTrx?.history || []), editRecord] : (oldTrx?.history || [])
+          };
           const filtered = prev.filter(t => t.id !== trxId);
           return [updatedTrx, ...filtered];
         });
