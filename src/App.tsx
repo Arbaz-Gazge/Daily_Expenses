@@ -230,6 +230,7 @@ function App() {
 
   // Backup & Restore
   // edit mode
+  const [showBackupOptions, setShowBackupOptions] = useState(false);
   const [editExpenseId, setEditExpenseId] = useState<string | null>(null);
 
   // UI States
@@ -1370,9 +1371,26 @@ function App() {
 
   const totalExpense = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  const handleBackup = async () => {
-    const dataStr = JSON.stringify({ expenses, categories, settings, banks, bankTransactions, depositCategories, autoPays }, null, 2);
-    const fileName = `expense_backup_${new Date().toISOString().split('T')[0]}.json`;
+  const handleBackup = async (type: 'Categories' | 'Banks' | 'Dashboard' | 'All') => {
+    let backupData: any = { settings }; // always include settings
+
+    if (type === 'All' || type === 'Dashboard') {
+      backupData.expenses = expenses;
+      backupData.categories = categories;
+      backupData.autoPays = autoPays;
+    }
+    if (type === 'All' || type === 'Banks') {
+      backupData.banks = banks;
+      backupData.bankTransactions = bankTransactions;
+      backupData.depositCategories = depositCategories;
+    }
+    if (type === 'Categories') {
+      backupData.categories = categories;
+      backupData.depositCategories = depositCategories;
+    }
+
+    const dataStr = JSON.stringify(backupData, null, 2);
+    const fileName = `expense_backup_${type.toLowerCase()}_${new Date().toISOString().split('T')[0]}.json`;
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -1384,8 +1402,8 @@ function App() {
         });
 
         await Share.share({
-          title: 'Expense Tracker Backup',
-          text: 'Your expense tracker backup data',
+          title: `Expense Tracker ${type} Backup`,
+          text: `Your expense tracker ${type.toLowerCase()} backup data`,
           url: result.uri,
         });
       } catch (err) {
@@ -1401,6 +1419,7 @@ function App() {
       a.click();
       URL.revokeObjectURL(url);
     }
+    setShowBackupOptions(false);
   };
 
   const handleRestoreFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2085,8 +2104,8 @@ function App() {
                 <p>Download a backup file of your expenses, export them to CSV, or restore from an existing backup.</p>
 
                 <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-                  <button className="submit-btn" onClick={handleBackup} style={{ margin: 0, flex: 1, padding: '0.85rem' }}>
-                    App Backup
+                  <button className="submit-btn" onClick={() => setShowBackupOptions(true)} style={{ margin: 0, flex: 1, padding: '0.85rem' }}>
+                    Generate Backup
                   </button>
                   <button className="submit-btn" onClick={handleExportCSV} style={{ margin: 0, flex: 1, background: '#3b82f6', padding: '0.85rem' }}>
                     Export CSV
@@ -2634,6 +2653,72 @@ function App() {
             <div className="modal-actions">
               <button className="modal-btn cancel" onClick={() => setDeleteId(null)}>Cancel</button>
               <button className="modal-btn delete" onClick={() => deleteExpense(deleteId)}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Backup Options Modal */}
+      {showBackupOptions && (
+        <div className="modal-overlay" style={{ zIndex: 3000 }}>
+          <div className="modal" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3>Backup Options</h3>
+              <button className="close-btn" style={{ position: 'static', color: 'var(--text-primary)' }} onClick={() => setShowBackupOptions(false)}>&times;</button>
+            </div>
+            <p style={{ marginBottom: '1.25rem', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Select what you'd like to back up:</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+              <button 
+                className="submit-btn" 
+                style={{ margin: 0, padding: '1rem', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'none' }} 
+                onClick={() => handleBackup('Dashboard')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1.4rem' }}>📊</span>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700 }}>Dashboard Data</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Expenses, SIPs & categories</div>
+                  </div>
+                </div>
+                <span style={{ opacity: 0.5 }}>→</span>
+              </button>
+              
+              <button 
+                className="submit-btn" 
+                style={{ margin: 0, padding: '1rem', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'none' }} 
+                onClick={() => handleBackup('Banks')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1.4rem' }}>🏦</span>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700 }}>Banks & Accounts</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Banks & Statements</div>
+                  </div>
+                </div>
+                <span style={{ opacity: 0.5 }}>→</span>
+              </button>
+
+              <button 
+                className="submit-btn" 
+                style={{ margin: 0, padding: '1rem', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'none' }} 
+                onClick={() => handleBackup('Categories')}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1.4rem' }}>🏷️</span>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700 }}>Categories</div>
+                    <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Only category lists</div>
+                  </div>
+                </div>
+                <span style={{ opacity: 0.5 }}>→</span>
+              </button>
+
+              <button 
+                className="submit-btn" 
+                style={{ margin: 0, padding: '1.2rem', marginTop: '0.5rem', background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' }} 
+                onClick={() => handleBackup('All')}
+              >
+                ✨ Backup All Data
+              </button>
             </div>
           </div>
         </div>
