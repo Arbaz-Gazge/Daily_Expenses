@@ -2872,3 +2872,10 @@ input:checked+.slider:before {
   border-color: #fb7185;
   box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2);
 }
+
+.cb-custom {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: var(--accent-color);
+}

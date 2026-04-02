@@ -230,7 +230,22 @@ function App() {
 
   // Backup & Restore
   // edit mode
-  const [showBackupOptions, setShowBackupOptions] = useState(false);
+  const [backupSelections, setBackupSelections] = useState({
+    dashboard: true,
+    banks: true,
+    categories: true,
+    autoPays: true,
+  });
+  
+  const [pendingRestoreData, setPendingRestoreData] = useState<any>(null);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoreSelections, setRestoreSelections] = useState({
+    dashboard: true,
+    banks: true,
+    categories: true,
+    autoPays: true,
+  });
+
   const [editExpenseId, setEditExpenseId] = useState<string | null>(null);
 
   // UI States
@@ -1371,26 +1386,32 @@ function App() {
 
   const totalExpense = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
-  const handleBackup = async (type: 'Categories' | 'Banks' | 'Dashboard' | 'All') => {
+  const handleBackup = async () => {
+    const { dashboard, banks, categories, autoPays } = backupSelections;
+    if (!dashboard && !banks && !categories && !autoPays) {
+      showAlert('Please select at least one item to back up.');
+      return;
+    }
+
     let backupData: any = { settings }; // always include settings
 
-    if (type === 'All' || type === 'Dashboard') {
+    if (dashboard) {
       backupData.expenses = expenses;
-      backupData.categories = categories;
-      backupData.autoPays = autoPays;
     }
-    if (type === 'All' || type === 'Banks') {
+    if (banks) {
       backupData.banks = banks;
       backupData.bankTransactions = bankTransactions;
-      backupData.depositCategories = depositCategories;
     }
-    if (type === 'Categories') {
+    if (categories) {
       backupData.categories = categories;
       backupData.depositCategories = depositCategories;
+    }
+    if (autoPays) {
+      backupData.autoPays = autoPays;
     }
 
     const dataStr = JSON.stringify(backupData, null, 2);
-    const fileName = `expense_backup_${type.toLowerCase()}_${new Date().toISOString().split('T')[0]}.json`;
+    const fileName = `expense_backup_${new Date().toISOString().split('T')[0]}.json`;
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -1402,8 +1423,8 @@ function App() {
         });
 
         await Share.share({
-          title: `Expense Tracker ${type} Backup`,
-          text: `Your expense tracker ${type.toLowerCase()} backup data`,
+          title: 'Expense Tracker Backup',
+          text: 'Selected expense tracker data backup',
           url: result.uri,
         });
       } catch (err) {
@@ -1419,7 +1440,28 @@ function App() {
       a.click();
       URL.revokeObjectURL(url);
     }
-    setShowBackupOptions(false);
+  };
+
+  const performRestore = () => {
+    if (!pendingRestoreData) return;
+    const data = pendingRestoreData;
+    const { dashboard, banks, categories, autoPays } = restoreSelections;
+
+    try {
+      if (dashboard && data.expenses) setExpenses(data.expenses);
+      if (categories && data.categories) setCategories(data.categories);
+      if (categories && data.depositCategories) setDepositCategories(data.depositCategories);
+      if (data.settings) setSettings(data.settings);
+      if (banks && data.banks) setBanks(data.banks);
+      if (banks && data.bankTransactions) setBankTransactions(data.bankTransactions);
+      if (autoPays && data.autoPays) setAutoPays(data.autoPays);
+      
+      showAlert('Data restored successfully!');
+      setShowRestoreModal(false);
+      setPendingRestoreData(null);
+    } catch (err) {
+      showAlert('Failed to restore data.');
+    }
   };
 
   const handleRestoreFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1431,14 +1473,16 @@ function App() {
       try {
         const content = event.target?.result as string;
         const data = JSON.parse(content);
-        if (data.expenses) setExpenses(data.expenses);
-        if (data.categories) setCategories(data.categories);
-        if (data.settings) setSettings(data.settings);
-        if (data.banks) setBanks(data.banks);
-        if (data.bankTransactions) setBankTransactions(data.bankTransactions);
-        if (data.depositCategories) setDepositCategories(data.depositCategories);
-        if (data.autoPays) setAutoPays(data.autoPays);
-        showAlert('Data restored successfully!');
+        setPendingRestoreData(data);
+        
+        // Update restore selections based on what's available in the file
+        setRestoreSelections({
+          dashboard: !!data.expenses,
+          banks: !!data.banks,
+          categories: !!data.categories || !!data.depositCategories,
+          autoPays: !!data.autoPays
+        });
+        setShowRestoreModal(true);
       } catch (err) {
         showAlert('Invalid backup file format.');
       }
@@ -2099,29 +2143,57 @@ function App() {
             )}
 
             {currentView === 'Backup & Export' && (
-              <div className="backup-container">
-                <h2>Backup & Export</h2>
-                <p>Download a backup file of your expenses, export them to CSV, or restore from an existing backup.</p>
+              <div className="backup-container animate-in">
+                <h2>Backup & Restore</h2>
+                <p style={{ marginBottom: '1.25rem', opacity: 0.8 }}>Secure your data or restore existing backups across multiple accounts.</p>
+                
+                <div className="backup-card shadow-sm" style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Backup Selection</h3>
+                  <div className="selection-list" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                    {[
+                      { key: 'dashboard', label: 'Dashboard', icon: '📊' },
+                      { key: 'banks', label: 'Banks', icon: '🏦' },
+                      { key: 'categories', label: 'Categories', icon: '🏷️' },
+                      { key: 'autoPays', label: 'Auto Pays', icon: '🔄' }
+                    ].map(item => (
+                      <label key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.85rem', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <input 
+                          type="checkbox" 
+                          className="cb-custom" 
+                          checked={(backupSelections as any)[item.key]} 
+                          onChange={e => setBackupSelections({ ...backupSelections, [item.key]: e.target.checked })} 
+                        />
+                        <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.label}</span>
+                      </label>
+                    ))}
+                  </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', marginBottom: '1.5rem' }}>
-                  <button className="submit-btn" onClick={() => setShowBackupOptions(true)} style={{ margin: 0, flex: 1, padding: '0.85rem' }}>
-                    Generate Backup
-                  </button>
-                  <button className="submit-btn" onClick={handleExportCSV} style={{ margin: 0, flex: 1, background: '#3b82f6', padding: '0.85rem' }}>
-                    Export CSV
-                  </button>
-                  <button className="submit-btn" onClick={handleExportPDF} style={{ margin: 0, flex: 1, background: '#ef4444', padding: '0.85rem' }}>
-                    Export PDF
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button className="submit-btn" onClick={handleBackup} style={{ margin: 0, flex: 1.5, padding: '1rem' }}>
+                      ✨ Generate Backup
+                    </button>
+                    <button className="submit-btn" onClick={() => setBackupSelections({ dashboard: true, banks: true, categories: true, autoPays: true })} style={{ margin: 0, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '1rem', flex: 1, fontSize: '0.8rem' }}>
+                      Select All
+                    </button>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label>Restore from File</label>
+                <div className="export-options" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                  <button className="submit-btn" onClick={handleExportCSV} style={{ margin: 0, flex: 1, background: '#3b82f6', padding: '0.85rem', fontSize: '0.9rem' }}>CSV</button>
+                  <button className="submit-btn" onClick={handleExportPDF} style={{ margin: 0, flex: 1, background: '#ef4444', padding: '0.85rem', fontSize: '0.9rem' }}>PDF</button>
+                </div>
+
+                <div className="restore-dropzone" style={{ background: 'var(--bg-primary)', border: '2px dashed var(--border-color)', borderRadius: '16px', padding: '2rem', textAlign: 'center', position: 'relative' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📥</div>
+                  <h4 style={{ margin: 0 }}>Restore Backup</h4>
+                  <p style={{ fontSize: '0.8rem', opacity: 0.6, marginTop: '0.5rem' }}>Tap or select a .json file to restore</p>
                   <input
                     type="file"
                     accept=".json"
                     onChange={handleRestoreFile}
                     className="custom-file-input"
+                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%' }}
                   />
                 </div>
               </div>
@@ -2657,67 +2729,73 @@ function App() {
           </div>
         </div>
       )}
-      {/* Backup Options Modal */}
-      {showBackupOptions && (
+      {/* Restore Options Modal */}
+      {showRestoreModal && pendingRestoreData && (
         <div className="modal-overlay" style={{ zIndex: 3000 }}>
           <div className="modal" style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3>Backup Options</h3>
-              <button className="close-btn" style={{ position: 'static', color: 'var(--text-primary)' }} onClick={() => setShowBackupOptions(false)}>&times;</button>
+              <h3>Restore Options</h3>
+              <button className="close-btn" style={{ position: 'static', color: 'var(--text-primary)' }} onClick={() => { setShowRestoreModal(false); setPendingRestoreData(null); }}>&times;</button>
             </div>
-            <p style={{ marginBottom: '1.25rem', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Select what you'd like to back up:</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-              <button 
-                className="submit-btn" 
-                style={{ margin: 0, padding: '1rem', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'none' }} 
-                onClick={() => handleBackup('Dashboard')}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '1.4rem' }}>📊</span>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 700 }}>Dashboard Data</div>
-                    <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Expenses, SIPs & categories</div>
+            <p style={{ marginBottom: '1.25rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              The backup file contains the following data. Select what you'd like to import:
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1.5rem' }}>
+              {[
+                { key: 'dashboard', label: 'Dashboard Data', icon: '📊', exists: !!pendingRestoreData.expenses },
+                { key: 'banks', label: 'Banks & Accounts', icon: '🏦', exists: !!pendingRestoreData.banks },
+                { key: 'categories', label: 'Categories', icon: '🏷️', exists: !!pendingRestoreData.categories || !!pendingRestoreData.depositCategories },
+                { key: 'autoPays', label: 'Auto Pays', icon: '🔄', exists: !!pendingRestoreData.autoPays },
+              ].map(item => (
+                <label 
+                  key={item.key} 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    padding: '1rem', 
+                    background: item.exists ? 'var(--bg-primary)' : 'transparent',
+                    opacity: item.exists ? 1 : 0.4,
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-color)',
+                    cursor: item.exists ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ fontSize: '1.4rem' }}>{item.icon}</span>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.label}</div>
+                      {!item.exists && <div style={{ fontSize: '0.7rem', color: '#ef4444' }}>Not found in file</div>}
+                    </div>
                   </div>
-                </div>
-                <span style={{ opacity: 0.5 }}>→</span>
-              </button>
-              
-              <button 
-                className="submit-btn" 
-                style={{ margin: 0, padding: '1rem', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'none' }} 
-                onClick={() => handleBackup('Banks')}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '1.4rem' }}>🏦</span>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 700 }}>Banks & Accounts</div>
-                    <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Banks & Statements</div>
-                  </div>
-                </div>
-                <span style={{ opacity: 0.5 }}>→</span>
-              </button>
+                  {item.exists && (
+                    <input 
+                      type="checkbox" 
+                      className="cb-custom"
+                      checked={(restoreSelections as any)[item.key]} 
+                      onChange={e => setRestoreSelections({ ...restoreSelections, [item.key]: e.target.checked })}
+                    />
+                  )}
+                </label>
+              ))}
+            </div>
 
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button 
                 className="submit-btn" 
-                style={{ margin: 0, padding: '1rem', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1.5px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'none' }} 
-                onClick={() => handleBackup('Categories')}
+                style={{ margin: 0, flex: 2 }} 
+                onClick={performRestore}
+                disabled={!Object.values(restoreSelections).some(v => v)}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '1.4rem' }}>🏷️</span>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 700 }}>Categories</div>
-                    <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>Only category lists</div>
-                  </div>
-                </div>
-                <span style={{ opacity: 0.5 }}>→</span>
+                📥 Confirm Restore
               </button>
-
               <button 
                 className="submit-btn" 
-                style={{ margin: 0, padding: '1.2rem', marginTop: '0.5rem', background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' }} 
-                onClick={() => handleBackup('All')}
+                style={{ margin: 0, flex: 1, background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }} 
+                onClick={() => { setShowRestoreModal(false); setPendingRestoreData(null); }}
               >
-                ✨ Backup All Data
+                Cancel
               </button>
             </div>
           </div>
