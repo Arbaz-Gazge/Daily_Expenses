@@ -2147,47 +2147,68 @@ function App() {
                 <h2>Backup & Restore</h2>
                 <p style={{ marginBottom: '1.25rem', opacity: 0.8 }}>Secure your data or restore existing backups across multiple accounts.</p>
                 
-                <div className="backup-card shadow-sm" style={{ background: 'var(--bg-secondary)', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Backup Selection</h3>
-                  <div className="selection-list" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                <div className="backup-card shadow-sm" style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '0.95rem', marginBottom: '0.85rem', fontWeight: 700 }}>Backup Selection</h3>
+                  <div className="selection-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginBottom: '1rem' }}>
                     {[
                       { key: 'dashboard', label: 'Dashboard', icon: '📊' },
                       { key: 'banks', label: 'Banks', icon: '🏦' },
                       { key: 'categories', label: 'Categories', icon: '🏷️' },
                       { key: 'autoPays', label: 'Auto Pays', icon: '🔄' }
                     ].map(item => (
-                      <label key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.85rem', background: 'var(--bg-primary)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                      <label key={item.key} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.4rem', 
+                        cursor: 'pointer', 
+                        padding: '0.65rem 0.4rem', 
+                        background: 'var(--bg-primary)', 
+                        borderRadius: '10px', 
+                        border: '1px solid var(--border-color)',
+                        minWidth: 0,
+                        overflow: 'hidden'
+                      }}>
                         <input 
                           type="checkbox" 
                           className="cb-custom" 
+                          style={{ flexShrink: 0, width: '16px', height: '16px' }}
                           checked={(backupSelections as any)[item.key]} 
                           onChange={e => setBackupSelections({ ...backupSelections, [item.key]: e.target.checked })} 
                         />
-                        <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.label}</span>
+                        <span style={{ fontSize: '0.9rem', flexShrink: 0 }}>{item.icon}</span>
+                        <span style={{ 
+                          fontSize: '0.75rem', 
+                          fontWeight: 600, 
+                          whiteSpace: 'nowrap', 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis',
+                          flex: 1 
+                        }} title={item.label}>
+                          {item.label}
+                        </span>
                       </label>
                     ))}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button className="submit-btn" onClick={handleBackup} style={{ margin: 0, flex: 1.5, padding: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button className="submit-btn" onClick={handleBackup} style={{ margin: 0, flex: 1.8, padding: '0.85rem 0.5rem', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                       ✨ Generate Backup
                     </button>
-                    <button className="submit-btn" onClick={() => setBackupSelections({ dashboard: true, banks: true, categories: true, autoPays: true })} style={{ margin: 0, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '1rem', flex: 1, fontSize: '0.8rem' }}>
+                    <button className="submit-btn" onClick={() => setBackupSelections({ dashboard: true, banks: true, categories: true, autoPays: true })} style={{ margin: 0, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '0.85rem 0.5rem', flex: 1, fontSize: '0.75rem' }}>
                       Select All
                     </button>
                   </div>
                 </div>
 
-                <div className="export-options" style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                  <button className="submit-btn" onClick={handleExportCSV} style={{ margin: 0, flex: 1, background: '#3b82f6', padding: '0.85rem', fontSize: '0.9rem' }}>CSV</button>
-                  <button className="submit-btn" onClick={handleExportPDF} style={{ margin: 0, flex: 1, background: '#ef4444', padding: '0.85rem', fontSize: '0.9rem' }}>PDF</button>
+                <div className="export-options" style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                  <button className="submit-btn" onClick={handleExportCSV} style={{ margin: 0, flex: 1, background: '#3b82f6', padding: '0.8rem', fontSize: '0.85rem' }}>CSV</button>
+                  <button className="submit-btn" onClick={handleExportPDF} style={{ margin: 0, flex: 1, background: '#ef4444', padding: '0.8rem', fontSize: '0.85rem' }}>PDF</button>
                 </div>
 
-                <div className="restore-dropzone" style={{ background: 'var(--bg-primary)', border: '2px dashed var(--border-color)', borderRadius: '16px', padding: '2rem', textAlign: 'center', position: 'relative' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📥</div>
-                  <h4 style={{ margin: 0 }}>Restore Backup</h4>
-                  <p style={{ fontSize: '0.8rem', opacity: 0.6, marginTop: '0.5rem' }}>Tap or select a .json file to restore</p>
+                <div className="restore-dropzone" style={{ background: 'var(--bg-primary)', border: '2px dashed var(--border-color)', borderRadius: '16px', padding: '1.5rem', textAlign: 'center', position: 'relative' }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '0.35rem' }}>📥</div>
+                  <h4 style={{ margin: 0, fontSize: '1rem' }}>Restore Backup</h4>
+                  <p style={{ fontSize: '0.75rem', opacity: 0.6, marginTop: '0.4rem' }}>Tap or select a .json file</p>
                   <input
                     type="file"
                     accept=".json"
