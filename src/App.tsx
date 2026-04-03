@@ -374,48 +374,61 @@ function App() {
     const loadData = async () => {
       const savedExpenses = await Preferences.get({ key: 'expenses' });
       if (savedExpenses.value) {
-        setExpenses(JSON.parse(savedExpenses.value));
+        const parsedExp = JSON.parse(savedExpenses.value);
+        if (Array.isArray(parsedExp)) setExpenses(parsedExp);
       }
       const savedCategories = await Preferences.get({ key: 'categories' });
       if (savedCategories.value) {
-        setCategories(JSON.parse(savedCategories.value));
+        const parsed = JSON.parse(savedCategories.value);
+        if (Array.isArray(parsed)) setCategories(parsed);
+        else setCategories(defaultCategories);
       } else {
         setCategories(defaultCategories);
       }
       const savedSettings = await Preferences.get({ key: 'settings' });
       if (savedSettings.value) {
         const settingsData = JSON.parse(savedSettings.value);
-        setSettings(settingsData);
-        // Apply theme immediately on load
-        if (settingsData.theme === 'dark') {
-          document.body.classList.add('dark-mode');
-        } else {
-          document.body.classList.remove('dark-mode');
+        if (settingsData && typeof settingsData === 'object') {
+          setSettings(settingsData);
+          // Apply theme immediately on load
+          if (settingsData.theme === 'dark') {
+            document.body.classList.add('dark-mode');
+          } else {
+            document.body.classList.remove('dark-mode');
+          }
         }
       }
       const savedFilters = await Preferences.get({ key: 'filters' });
       if (savedFilters.value) {
         const filtersData = JSON.parse(savedFilters.value);
-        if (filtersData.categoryFilters) setCategoryFilters(filtersData.categoryFilters);
-        else if (filtersData.categoryFilter) setCategoryFilters([filtersData.categoryFilter]);
-        if (filtersData.dateFilter) setDateFilter(filtersData.dateFilter);
-        if (filtersData.paymentModeFilter) setPaymentModeFilter(filtersData.paymentModeFilter);
-        if (filtersData.startDate) setStartDate(filtersData.startDate);
-        if (filtersData.endDate) setEndDate(filtersData.endDate);
+        if (filtersData && typeof filtersData === 'object') {
+          if (Array.isArray(filtersData.categoryFilters)) setCategoryFilters(filtersData.categoryFilters);
+          else if (filtersData.categoryFilter) setCategoryFilters([filtersData.categoryFilter]);
+          if (filtersData.dateFilter) setDateFilter(filtersData.dateFilter);
+          if (Array.isArray(filtersData.paymentModeFilter)) setPaymentModeFilter(filtersData.paymentModeFilter);
+          if (filtersData.startDate) setStartDate(filtersData.startDate);
+          if (filtersData.endDate) setEndDate(filtersData.endDate);
+        }
       }
       const savedBanks = await Preferences.get({ key: 'banks' });
       let parsedBanks: Bank[] = [];
-      if (savedBanks.value) parsedBanks = JSON.parse(savedBanks.value);
+      if (savedBanks.value) {
+        const b = JSON.parse(savedBanks.value);
+        if (Array.isArray(b)) parsedBanks = b;
+      }
 
       const savedBankTrx = await Preferences.get({ key: 'bankTransactions' });
       let parsedTrx: BankTransaction[] = [];
-      if (savedBankTrx.value) parsedTrx = JSON.parse(savedBankTrx.value);
+      if (savedBankTrx.value) {
+        const t = JSON.parse(savedBankTrx.value);
+        if (Array.isArray(t)) parsedTrx = t;
+      }
 
       // Auto-reconcile to securely fix any previous database desyncs
       if (parsedBanks.length > 0) {
         parsedBanks = parsedBanks.map(b => {
-          const totalIn = parsedTrx.filter(t => t.bankId === b.id && t.type === 'in').reduce((sum, t) => sum + t.amount, 0);
-          const totalOut = parsedTrx.filter(t => t.bankId === b.id && t.type === 'out').reduce((sum, t) => sum + t.amount, 0);
+          const totalIn = Array.isArray(parsedTrx) ? parsedTrx.filter(t => t.bankId === b.id && t.type === 'in').reduce((sum, t) => sum + t.amount, 0) : 0;
+          const totalOut = Array.isArray(parsedTrx) ? parsedTrx.filter(t => t.bankId === b.id && t.type === 'out').reduce((sum, t) => sum + t.amount, 0) : 0;
           return { ...b, balance: totalIn - totalOut };
         });
       }
@@ -424,7 +437,10 @@ function App() {
       setBankTransactions(parsedTrx);
 
       const savedAutoPays = await Preferences.get({ key: 'autoPays' });
-      if (savedAutoPays.value) setAutoPays(JSON.parse(savedAutoPays.value));
+      if (savedAutoPays.value) {
+        const p = JSON.parse(savedAutoPays.value);
+        if (Array.isArray(p)) setAutoPays(p);
+      }
 
       const savedDepositCats = await Preferences.get({ key: 'depositCategories' });
       if (savedDepositCats.value) {
@@ -1387,26 +1403,26 @@ function App() {
   const totalExpense = sortedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
   const handleBackup = async () => {
-    const { dashboard, banks, categories, autoPays } = backupSelections;
-    if (!dashboard && !banks && !categories && !autoPays) {
+    const { dashboard: doDashboard, banks: doBanks, categories: doCategories, autoPays: doAutoPays } = backupSelections;
+    if (!doDashboard && !doBanks && !doCategories && !doAutoPays) {
       showAlert('Please select at least one item to back up.');
       return;
     }
 
     let backupData: any = { settings }; // always include settings
 
-    if (dashboard) {
+    if (doDashboard) {
       backupData.expenses = expenses;
     }
-    if (banks) {
+    if (doBanks) {
       backupData.banks = banks;
       backupData.bankTransactions = bankTransactions;
     }
-    if (categories) {
+    if (doCategories) {
       backupData.categories = categories;
       backupData.depositCategories = depositCategories;
     }
-    if (autoPays) {
+    if (doAutoPays) {
       backupData.autoPays = autoPays;
     }
 
@@ -1445,16 +1461,16 @@ function App() {
   const performRestore = () => {
     if (!pendingRestoreData) return;
     const data = pendingRestoreData;
-    const { dashboard, banks, categories, autoPays } = restoreSelections;
+    const { dashboard: resDash, banks: resBanks, categories: resCats, autoPays: resAuto } = restoreSelections;
 
     try {
-      if (dashboard && data.expenses) setExpenses(data.expenses);
-      if (categories && data.categories) setCategories(data.categories);
-      if (categories && data.depositCategories) setDepositCategories(data.depositCategories);
+      if (resDash && Array.isArray(data.expenses)) setExpenses(data.expenses);
+      if (resCats && Array.isArray(data.categories)) setCategories(data.categories);
+      if (resCats && Array.isArray(data.depositCategories)) setDepositCategories(data.depositCategories);
       if (data.settings) setSettings(data.settings);
-      if (banks && data.banks) setBanks(data.banks);
-      if (banks && data.bankTransactions) setBankTransactions(data.bankTransactions);
-      if (autoPays && data.autoPays) setAutoPays(data.autoPays);
+      if (resBanks && Array.isArray(data.banks)) setBanks(data.banks);
+      if (resBanks && Array.isArray(data.bankTransactions)) setBankTransactions(data.bankTransactions);
+      if (resAuto && Array.isArray(data.autoPays)) setAutoPays(data.autoPays);
       
       showAlert('Data restored successfully!');
       setShowRestoreModal(false);
