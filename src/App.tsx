@@ -65,12 +65,26 @@ interface AutoPay {
   status: 'Active' | 'Paused';
 }
 
+interface Account {
+  id: string;
+  name: string;
+  avatar?: string;
+  createdAt: string;
+}
+
 interface Settings {
   theme: 'light' | 'dark';
   timeFormat: '12h' | '24h';
 }
 
 function App() {
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
+  const [newAccountName, setNewAccountName] = useState('');
+  const [hasOldData, setHasOldData] = useState(false);
+  
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [viewingTrx, setViewingTrx] = useState<BankTransaction | null>(null);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -367,17 +381,111 @@ function App() {
     }
   };
 
+  const loginToAccount = async (acc: Account) => {
+    setCurrentAccount(acc);
+    await Preferences.set({ key: 'last_account_id', value: acc.id });
+    loadAccountData(acc.id);
+  };
+
+  const logout = async () => {
+    setCurrentAccount(null);
+    await Preferences.remove({ key: 'last_account_id' });
+    setIsAuthLoading(false);
+    // Reset state values to defaults for next login
+    setExpenses([]);
+    setBanks([]);
+    setBankTransactions([]);
+    setAutoPays([]);
+    setCategories(defaultCategories);
+    setSettings({ theme: 'light', timeFormat: '12h' });
+  };
+
   // Centralized dropdown state for "Popup Mode"
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadData = async () => {
-      const savedExpenses = await Preferences.get({ key: 'expenses' });
+    const initAuth = async () => {
+      const savedAccounts = await Preferences.get({ key: 'global_accounts' });
+      const accountsList = savedAccounts.value ? JSON.parse(savedAccounts.value) : [];
+      setAccounts(Array.isArray(accountsList) ? accountsList : []);
+
+      const lastAccountId = await Preferences.get({ key: 'last_account_id' });
+      if (lastAccountId.value) {
+        const found = accountsList.find((a: Account) => a.id === lastAccountId.value);
+        if (found) {
+          setCurrentAccount(found);
+          loadAccountData(found.id);
+        } else {
+          setIsAuthLoading(false);
+        }
+      } else {
+        const oldExpenses = await Preferences.get({ key: 'expenses' });
+        if (oldExpenses.value && accountsList.length === 0) {
+          setHasOldData(true);
+        }
+        setIsAuthLoading(false);
+      }
+      setDataLoaded(true);
+    };
+
+    initAuth();
+  }, []);
+
+  const deleteAccount = async (accId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('Delete this account and all its data? This cannot be undone.')) {
+      const keys = ['expenses', 'categories', 'settings', 'banks', 'bankTransactions', 'autoPays', 'depositCategories'];
+      for (const k of keys) {
+        await Preferences.remove({ key: `account_${accId}_${k}` });
+      }
+      const updated = accounts.filter(a => a.id !== accId);
+      setAccounts(updated);
+      await Preferences.set({ key: 'global_accounts', value: JSON.stringify(updated) });
+    }
+  };
+
+  const migrateOldData = async () => {
+    const name = window.prompt('Migrate existing data to new account? Enter name:', 'Personal');
+    if (!name) return;
+    
+    setIsLoading(true);
+    const newId = Date.now().toString();
+    const newAcc: Account = {
+      id: newId,
+      name: name,
+      createdAt: new Date().toISOString()
+    };
+    
+    const oldKeys = ['expenses', 'categories', 'settings', 'banks', 'bankTransactions', 'autoPays', 'depositCategories'];
+    for (const k of oldKeys) {
+      const val = await Preferences.get({ key: k });
+      if (val.value) {
+        await Preferences.set({ key: `account_${newId}_${k}`, value: val.value });
+      }
+    }
+    
+    const updated = [...accounts, newAcc];
+    setAccounts(updated);
+    await Preferences.set({ key: 'global_accounts', value: JSON.stringify(updated) });
+    setHasOldData(false);
+    loginToAccount(newAcc);
+    setIsLoading(false);
+  };
+
+  const loadAccountData = async (accountId: string) => {
+    setIsLoading(true);
+    try {
+      const keyPrefix = `account_${accountId}_`;
+      
+      const savedExpenses = await Preferences.get({ key: `${keyPrefix}expenses` });
       if (savedExpenses.value) {
         const parsedExp = JSON.parse(savedExpenses.value);
         if (Array.isArray(parsedExp)) setExpenses(parsedExp);
+      } else {
+        setExpenses([]);
       }
-      const savedCategories = await Preferences.get({ key: 'categories' });
+
+      const savedCategories = await Preferences.get({ key: `${keyPrefix}categories` });
       if (savedCategories.value) {
         const parsed = JSON.parse(savedCategories.value);
         if (Array.isArray(parsed)) setCategories(parsed);
@@ -385,46 +493,31 @@ function App() {
       } else {
         setCategories(defaultCategories);
       }
-      const savedSettings = await Preferences.get({ key: 'settings' });
+
+      const savedSettings = await Preferences.get({ key: `${keyPrefix}settings` });
       if (savedSettings.value) {
         const settingsData = JSON.parse(savedSettings.value);
         if (settingsData && typeof settingsData === 'object') {
           setSettings(settingsData);
-          // Apply theme immediately on load
-          if (settingsData.theme === 'dark') {
-            document.body.classList.add('dark-mode');
-          } else {
-            document.body.classList.remove('dark-mode');
-          }
+          if (settingsData.theme === 'dark') document.body.classList.add('dark-mode');
+          else document.body.classList.remove('dark-mode');
         }
       }
-      const savedFilters = await Preferences.get({ key: 'filters' });
-      if (savedFilters.value) {
-        const filtersData = JSON.parse(savedFilters.value);
-        if (filtersData && typeof filtersData === 'object') {
-          if (Array.isArray(filtersData.categoryFilters)) setCategoryFilters(filtersData.categoryFilters);
-          else if (filtersData.categoryFilter) setCategoryFilters([filtersData.categoryFilter]);
-          if (filtersData.dateFilter) setDateFilter(filtersData.dateFilter);
-          if (Array.isArray(filtersData.paymentModeFilter)) setPaymentModeFilter(filtersData.paymentModeFilter);
-          if (filtersData.startDate) setStartDate(filtersData.startDate);
-          if (filtersData.endDate) setEndDate(filtersData.endDate);
-        }
-      }
-      const savedBanks = await Preferences.get({ key: 'banks' });
+
+      const savedBanks = await Preferences.get({ key: `${keyPrefix}banks` });
       let parsedBanks: Bank[] = [];
       if (savedBanks.value) {
         const b = JSON.parse(savedBanks.value);
         if (Array.isArray(b)) parsedBanks = b;
       }
 
-      const savedBankTrx = await Preferences.get({ key: 'bankTransactions' });
+      const savedBankTrx = await Preferences.get({ key: `${keyPrefix}bankTransactions` });
       let parsedTrx: BankTransaction[] = [];
       if (savedBankTrx.value) {
         const t = JSON.parse(savedBankTrx.value);
         if (Array.isArray(t)) parsedTrx = t;
       }
 
-      // Auto-reconcile to securely fix any previous database desyncs
       if (parsedBanks.length > 0) {
         parsedBanks = parsedBanks.map(b => {
           const totalIn = Array.isArray(parsedTrx) ? parsedTrx.filter(t => t.bankId === b.id && t.type === 'in').reduce((sum, t) => sum + t.amount, 0) : 0;
@@ -436,56 +529,87 @@ function App() {
       setBanks(parsedBanks);
       setBankTransactions(parsedTrx);
 
-      const savedAutoPays = await Preferences.get({ key: 'autoPays' });
+      const savedAutoPays = await Preferences.get({ key: `${keyPrefix}autoPays` });
       if (savedAutoPays.value) {
         const p = JSON.parse(savedAutoPays.value);
         if (Array.isArray(p)) setAutoPays(p);
+      } else {
+        setAutoPays([]);
       }
 
-      const savedDepositCats = await Preferences.get({ key: 'depositCategories' });
+      const savedDepositCats = await Preferences.get({ key: `${keyPrefix}depositCategories` });
       if (savedDepositCats.value) {
-        setDepositCategories(JSON.parse(savedDepositCats.value));
+        const d = JSON.parse(savedDepositCats.value);
+        if (Array.isArray(d)) setDepositCategories(d);
+        else setDepositCategories(defaultDepositCategories);
       } else {
         setDepositCategories(defaultDepositCategories);
       }
 
-      setDataLoaded(true);
-    };
-    loadData();
+      setIsAuthLoading(false);
+    } catch (err) {
+      console.error('Error loading account data', err);
+      showAlert('Failed to load user data.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  const createAccount = async () => {
+    if (!newAccountName.trim()) return;
+    const newId = Date.now().toString();
+    const newAcc: Account = {
+      id: newId,
+      name: newAccountName.trim(),
+      createdAt: new Date().toISOString()
+    };
+    
+    const updated = [...accounts, newAcc];
+    setAccounts(updated);
+    await Preferences.set({ key: 'global_accounts', value: JSON.stringify(updated) });
+    setNewAccountName('');
+    setShowCreateAccountModal(false);
+    
+    // Switch to new account immediately
+    loginToAccount(newAcc);
+  };
+
+  useEffect(() => {
     const today = new Date();
     const localDate = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
     setDate(localDate);
     setTime(today.toTimeString().split(' ')[0].substring(0, 5));
-  }, []);
+  }, [currentAccount]);
 
   useEffect(() => {
-    Preferences.set({ key: 'expenses', value: JSON.stringify(expenses) });
-  }, [expenses]);
-
-  useEffect(() => {
-    if (categories.length > 0) {
-      Preferences.set({ key: 'categories', value: JSON.stringify(categories) });
+    if (currentAccount) {
+      Preferences.set({ key: `account_${currentAccount.id}_expenses`, value: JSON.stringify(expenses) });
     }
-  }, [categories]);
+  }, [expenses, currentAccount]);
 
   useEffect(() => {
-    if (dataLoaded) {
-      Preferences.set({ key: 'banks', value: JSON.stringify(banks) });
+    if (currentAccount && categories.length > 0) {
+      Preferences.set({ key: `account_${currentAccount.id}_categories`, value: JSON.stringify(categories) });
     }
-  }, [banks, dataLoaded]);
+  }, [categories, currentAccount]);
 
   useEffect(() => {
-    if (dataLoaded) {
-      Preferences.set({ key: 'bankTransactions', value: JSON.stringify(bankTransactions) });
+    if (currentAccount && dataLoaded) {
+      Preferences.set({ key: `account_${currentAccount.id}_banks`, value: JSON.stringify(banks) });
     }
-  }, [bankTransactions, dataLoaded]);
+  }, [banks, dataLoaded, currentAccount]);
 
   useEffect(() => {
-    if (dataLoaded) {
-      Preferences.set({ key: 'autoPays', value: JSON.stringify(autoPays) });
+    if (currentAccount && dataLoaded) {
+      Preferences.set({ key: `account_${currentAccount.id}_bankTransactions`, value: JSON.stringify(bankTransactions) });
     }
-  }, [autoPays, dataLoaded]);
+  }, [bankTransactions, dataLoaded, currentAccount]);
+
+  useEffect(() => {
+    if (currentAccount && dataLoaded) {
+      Preferences.set({ key: `account_${currentAccount.id}_autoPays`, value: JSON.stringify(autoPays) });
+    }
+  }, [autoPays, dataLoaded, currentAccount]);
 
   useEffect(() => {
     if (dataLoaded && autoPays.length > 0) {
@@ -1609,6 +1733,91 @@ function App() {
     }
   };
 
+  if (isAuthLoading) {
+    return (
+      <div className="auth-loading-screen" style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+        <div className="spinner-glow"></div>
+        <p style={{ marginTop: '1rem', opacity: 0.8 }}>Initializing Accounts...</p>
+      </div>
+    );
+  }
+
+  if (!currentAccount) {
+    return (
+      <div className="welcome-screen anim-fade-in" style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)', padding: '2rem' }}>
+        <div style={{ marginTop: '3rem', marginBottom: '3rem' }}>
+          <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>Hi there! 👋</h1>
+          <p style={{ opacity: 0.6, fontSize: '1rem', marginTop: '0.4rem' }}>Manage your accounts locally.</p>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <h3 style={{ opacity: 0.5, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.1em', marginBottom: '1rem' }}>Local Accounts</h3>
+          
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            {accounts.map(acc => (
+              <div key={acc.id} onClick={() => loginToAccount(acc)} className="account-card" style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', padding: '1.25rem', background: 'var(--bg-secondary)', borderRadius: '24px', border: '1px solid var(--border-color)', position: 'relative' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'linear-gradient(135deg, var(--accent-color), #4facfe)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 800 }}>
+                  {acc.name.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>{acc.name}</div>
+                  <div style={{ fontSize: '0.8rem', opacity: 0.4 }}>Created: {new Date(acc.createdAt).toLocaleDateString()}</div>
+                </div>
+                <button onClick={(e) => deleteAccount(acc.id, e)} style={{ padding: '0.8rem', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1.2rem', opacity: 0.3 }}>
+                  🗑️
+                </button>
+              </div>
+            ))}
+            
+            {hasOldData && (
+              <div onClick={migrateOldData} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', background: 'rgba(52, 199, 89, 0.1)', borderRadius: '24px', border: '1px dashed #34c759', cursor: 'pointer' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: '#34c759', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📦</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, color: '#34c759' }}>Migrate Existing Data</div>
+                  <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>Found data from a previous version.</div>
+                </div>
+              </div>
+            )}
+            
+            <div onClick={() => setShowCreateAccountModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.25rem', background: 'var(--bg-secondary)', borderRadius: '24px', border: '1px dashed var(--border-color)', cursor: 'pointer', opacity: 0.8 }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'var(--bg-primary)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: '1px solid var(--border-color)' }}>+</div>
+              <div>
+                <div style={{ fontWeight: 700 }}>Add Account</div>
+                <div style={{ fontSize: '0.8rem', opacity: 0.4 }}>Create a new workspace</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {showCreateAccountModal && (
+          <div className="modal-overlay" style={{ zIndex: 10000, padding: '1rem' }}>
+            <div className="modal anim-slide-up" style={{ width: '100%', maxWidth: '400px', padding: '2rem' }}>
+              <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 800 }}>Create Account</h1>
+              <p style={{ opacity: 0.5, marginBottom: '2rem' }}>All data stays private on this device.</p>
+              
+              <div style={{ marginBottom: '2rem' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 700, opacity: 0.6, display: 'block', marginBottom: '0.8rem' }}>ACCOUNT NAME</label>
+                <input 
+                  type="text" 
+                  value={newAccountName} 
+                  onChange={e => setNewAccountName(e.target.value)} 
+                  placeholder="e.g. My Personal Expenses"
+                  style={{ width: '100%', padding: '1.2rem', borderRadius: '16px', border: '2px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '1.1rem' }}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button className="submit-btn" onClick={() => setShowCreateAccountModal(false)} style={{ margin: 0, flex: 1, background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: 'none' }}>Cancel</button>
+                <button className="submit-btn" onClick={createAccount} style={{ margin: 0, flex: 2 }}>Get Started</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={`app-container ${settings.theme}`}>
       {/* App Loading Splash Screen */}
@@ -1651,6 +1860,9 @@ function App() {
           </li>
           <li className={currentView === 'About Us' ? 'active' : ''} onClick={() => { handleViewSwitch('About Us'); setIsSidebarOpen(false); }}>
             About Us
+          </li>
+          <li className="logout-btn" onClick={() => { logout(); setIsSidebarOpen(false); }} style={{ marginTop: '2rem', color: '#ef4444', fontWeight: 700, borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+            🔄 Switch Account
           </li>
         </ul>
 
