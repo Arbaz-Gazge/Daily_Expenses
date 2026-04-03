@@ -1493,10 +1493,10 @@ function App() {
         
         // Update restore selections based on what's available in the file
         setRestoreSelections({
-          dashboard: !!data.expenses,
-          banks: !!data.banks,
-          categories: !!data.categories || !!data.depositCategories,
-          autoPays: !!data.autoPays
+          dashboard: Array.isArray(data.expenses),
+          banks: Array.isArray(data.banks),
+          categories: Array.isArray(data.categories) || Array.isArray(data.depositCategories),
+          autoPays: Array.isArray(data.autoPays)
         });
         setShowRestoreModal(true);
       } catch (err) {
@@ -2780,10 +2780,10 @@ function App() {
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginBottom: '1.5rem' }}>
               {[
-                { key: 'dashboard', label: 'Dashboard Data', icon: '📊', exists: !!pendingRestoreData.expenses },
-                { key: 'banks', label: 'Banks & Accounts', icon: '🏦', exists: !!pendingRestoreData.banks },
-                { key: 'categories', label: 'Categories', icon: '🏷️', exists: !!pendingRestoreData.categories || !!pendingRestoreData.depositCategories },
-                { key: 'autoPays', label: 'Auto Pays', icon: '🔄', exists: !!pendingRestoreData.autoPays },
+                { key: 'dashboard', label: 'Dashboard Data', icon: '📊', exists: Array.isArray(pendingRestoreData.expenses) },
+                { key: 'banks', label: 'Banks & Accounts', icon: '🏦', exists: Array.isArray(pendingRestoreData.banks) },
+                { key: 'categories', label: 'Categories', icon: '🏷️', exists: Array.isArray(pendingRestoreData.categories) || Array.isArray(pendingRestoreData.depositCategories) },
+                { key: 'autoPays', label: 'Auto Pays', icon: '🔄', exists: Array.isArray(pendingRestoreData.autoPays) },
               ].map(item => (
                 <label 
                   key={item.key} 
