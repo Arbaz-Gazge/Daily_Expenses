@@ -14,7 +14,24 @@
         android:textSize="18sp"
         android:textStyle="bold"
         android:textColor="#ffffff"
-        android:layout_marginBottom="20dp" />
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="SELECT ACCOUNT"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:textColor="#94a3b8"
+        android:layout_marginBottom="4dp"
+        android:layout_marginStart="4dp" />
+
+    <Spinner
+        android:id="@+id/spinnerAccount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/input_bg"
+        android:layout_marginBottom="16dp" />
 
     <EditText
         android:id="@+id/editAmount"
