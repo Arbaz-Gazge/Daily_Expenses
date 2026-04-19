@@ -84,6 +84,7 @@ function App() {
   const [showCreateAccountModal, setShowCreateAccountModal] = useState(false);
   const [newAccountName, setNewAccountName] = useState('');
   const [hasOldData, setHasOldData] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
   
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [viewingTrx, setViewingTrx] = useState<BankTransaction | null>(null);
@@ -382,9 +383,12 @@ function App() {
   };
 
   const loginToAccount = async (acc: Account) => {
+    setIsSwitching(true);
     setCurrentAccount(acc);
     await Preferences.set({ key: 'last_account_id', value: acc.id });
-    loadAccountData(acc.id);
+    await loadAccountData(acc.id);
+    // Smooth transition delay
+    setTimeout(() => setIsSwitching(false), 800);
   };
 
   const logout = async () => {
@@ -546,6 +550,11 @@ function App() {
         setDepositCategories(defaultDepositCategories);
       }
 
+      const savedView = await Preferences.get({ key: `${keyPrefix}currentView` });
+      if (savedView.value) {
+        setCurrentView(savedView.value);
+      }
+
       setIsAuthLoading(false);
     } catch (err) {
       console.error('Error loading account data', err);
@@ -604,6 +613,12 @@ function App() {
       Preferences.set({ key: `account_${currentAccount.id}_bankTransactions`, value: JSON.stringify(bankTransactions) });
     }
   }, [bankTransactions, dataLoaded, currentAccount]);
+
+  useEffect(() => {
+    if (currentAccount && dataLoaded) {
+      Preferences.set({ key: `account_${currentAccount.id}_currentView`, value: currentView });
+    }
+  }, [currentView, dataLoaded, currentAccount]);
 
   useEffect(() => {
     if (currentAccount && dataLoaded) {
@@ -1820,6 +1835,13 @@ function App() {
 
   return (
     <div className={`app-container ${settings.theme}`}>
+      {/* Account Switching Overlay */}
+      {isSwitching && (
+        <div className="auth-loading-screen" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+          <div className="spinner-glow"></div>
+          <p style={{ marginTop: '1.5rem', fontWeight: 700, opacity: 0.9 }}>Switching Account...</p>
+        </div>
+      )}
       {/* App Loading Splash Screen */}
       {!dataLoaded && (
         <div className="app-loading-screen">
@@ -2379,39 +2401,53 @@ function App() {
                   <h3 style={{ fontSize: '0.95rem', marginBottom: '0.85rem', fontWeight: 700 }}>Backup Selection</h3>
                   <div className="selection-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem', marginBottom: '1rem' }}>
                     {[
-                      { key: 'dashboard', label: 'Dashboard', icon: '📊' },
-                      { key: 'banks', label: 'Banks', icon: '🏦' },
-                      { key: 'categories', label: 'Categories', icon: '🏷️' },
-                      { key: 'autoPays', label: 'Auto Pays', icon: '🔄' }
+                      { key: 'dashboard', label: 'Dashboard', icon: '/dashboard_icon.png' },
+                      { key: 'banks', label: 'Banks', icon: '/bank_icon.png' },
+                      { key: 'categories', label: 'Categories', icon: '/categories_icon.png' },
+                      { key: 'autoPays', label: 'Auto Pays', icon: '/autopays_icon.png' }
                     ].map(item => (
                       <label key={item.key} style={{ 
                         display: 'flex', 
                         alignItems: 'center', 
-                        gap: '0.4rem', 
+                        gap: '0.6rem', 
                         cursor: 'pointer', 
-                        padding: '0.65rem 0.4rem', 
+                        padding: '0.75rem 0.6rem', 
                         background: 'var(--bg-primary)', 
-                        borderRadius: '10px', 
+                        borderRadius: '12px', 
                         border: '1px solid var(--border-color)',
                         minWidth: 0,
-                        overflow: 'hidden'
+                        transition: 'all 0.2s ease',
+                        boxShadow: (backupSelections as any)[item.key] ? '0 4px 12px rgba(59, 130, 246, 0.1)' : 'none'
                       }}>
                         <input 
                           type="checkbox" 
                           className="cb-custom" 
-                          style={{ flexShrink: 0, width: '16px', height: '16px' }}
+                          style={{ flexShrink: 0, width: '18px', height: '18px', accentColor: 'var(--accent-color)' }}
                           checked={(backupSelections as any)[item.key]} 
                           onChange={e => setBackupSelections({ ...backupSelections, [item.key]: e.target.checked })} 
                         />
-                        <span style={{ fontSize: '0.9rem', flexShrink: 0 }}>{item.icon}</span>
+                        <img 
+                          src={item.icon} 
+                          alt={item.label} 
+                          style={{ 
+                            width: '28px', 
+                            height: '28px', 
+                            objectFit: 'contain', 
+                            mixBlendMode: 'screen',
+                            filter: (backupSelections as any)[item.key] ? 'brightness(1.2)' : 'brightness(0.9)',
+                            transform: (backupSelections as any)[item.key] ? 'scale(1.1)' : 'scale(1)',
+                            transition: 'transform 0.2s ease'
+                          }} 
+                        />
                         <span style={{ 
-                          fontSize: '0.75rem', 
+                          fontSize: '0.85rem', 
                           fontWeight: 600, 
                           whiteSpace: 'nowrap', 
                           overflow: 'hidden', 
                           textOverflow: 'ellipsis',
-                          flex: 1 
-                        }} title={item.label}>
+                          flex: 1,
+                          color: (backupSelections as any)[item.key] ? 'var(--accent-color)' : 'var(--text-primary)'
+                        }}>
                           {item.label}
                         </span>
                       </label>

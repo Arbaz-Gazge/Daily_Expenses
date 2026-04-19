@@ -12,15 +12,23 @@ public class AddExpenseWidget extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
-            Intent intent = new Intent(context, AddExpenseActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_add_expense);
-            views.setOnClickPendingIntent(R.id.widget_layout_root, pendingIntent);
-            // Wait, we need an id for the root in widget_add_expense.xml
-            // Will add if needed, or set onclick on the entire root.
+
+            // 1. Add Expense Button
+            Intent addIntent = new Intent(context, AddExpenseActivity.class);
+            addIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            PendingIntent addPendingIntent = PendingIntent.getActivity(context, 1, addIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            views.setOnClickPendingIntent(R.id.btn_add_expense, addPendingIntent);
+
+            // 2. Switch Account Button
+            // We create a special intent that will tell our app to logout/reset
+            Intent switchIntent = new Intent(context, MainActivity.class);
+            switchIntent.setAction("ACTION_SWITCH_ACCOUNT");
+            switchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            PendingIntent switchPendingIntent = PendingIntent.getActivity(context, 2, switchIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            views.setOnClickPendingIntent(R.id.btn_switch_account, switchPendingIntent);
 
             appWidgetManager.updateAppWidget(appWidgetId, views);
         }

@@ -39,9 +39,12 @@ public class AddExpenseActivity extends Activity {
         Button btnAdd = findViewById(R.id.btnAdd);
         Button btnCancel = findViewById(R.id.btnCancel);
 
-        // Load Categories
+        // Load Account Info
         SharedPreferences prefs = getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
-        String savedCats = prefs.getString("categories", "");
+        String lastAccountId = prefs.getString("last_account_id", "");
+        final String keyPrefix = lastAccountId.isEmpty() ? "" : "account_" + lastAccountId + "_";
+
+        String savedCats = prefs.getString(keyPrefix + "categories", "");
         List<String> categoriesList = new ArrayList<>();
         
         if (savedCats != null && !savedCats.isEmpty()) {
@@ -67,7 +70,7 @@ public class AddExpenseActivity extends Activity {
         spinnerCategory.setAdapter(adapter);
 
         // Load Banks for Payment Mode
-        String savedBanks = prefs.getString("banks", "[]");
+        String savedBanks = prefs.getString(keyPrefix + "banks", "[]");
         final List<String> banksList = new ArrayList<>();
         final List<String> originalBankNames = new ArrayList<>();
         final List<String> bankIds = new ArrayList<>();
@@ -109,7 +112,7 @@ public class AddExpenseActivity extends Activity {
                 String selectedCategory = spinnerCategory.getSelectedItem().toString();
 
                 SharedPreferences sPrefs = getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
-                String expensesJsonStr = sPrefs.getString("expenses", "[]");
+                String expensesJsonStr = sPrefs.getString(keyPrefix + "expenses", "[]");
                 JSONArray expensesArray = new JSONArray(expensesJsonStr);
 
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -132,11 +135,11 @@ public class AddExpenseActivity extends Activity {
                 newExpense.put("time", timeFormat.format(now));
 
                 expensesArray.put(newExpense);
-                sPrefs.edit().putString("expenses", expensesArray.toString()).apply();
+                sPrefs.edit().putString(keyPrefix + "expenses", expensesArray.toString()).apply();
 
                 // Handle Bank Transaction for balance update
                 if (!selectedPayModeId.equals("cash")) {
-                    String trxsJsonStr = sPrefs.getString("bankTransactions", "[]");
+                    String trxsJsonStr = sPrefs.getString(keyPrefix + "bankTransactions", "[]");
                     JSONArray trxsArray = new JSONArray(trxsJsonStr);
                     
                     JSONObject newTrx = new JSONObject();
@@ -150,7 +153,7 @@ public class AddExpenseActivity extends Activity {
                     newTrx.put("time", timeFormat.format(now));
                     
                     trxsArray.put(newTrx);
-                    sPrefs.edit().putString("bankTransactions", trxsArray.toString()).apply();
+                    sPrefs.edit().putString(keyPrefix + "bankTransactions", trxsArray.toString()).apply();
                 }
 
                 Toast.makeText(this, "Expense Added!", Toast.LENGTH_SHORT).show();
