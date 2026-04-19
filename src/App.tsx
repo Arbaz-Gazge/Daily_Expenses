@@ -1917,6 +1917,26 @@ function App() {
       <header className="header" style={{ position: 'relative' }}>
         <button className="menu-btn" onClick={() => setIsSidebarOpen(true)}>☰</button>
         <h1>{currentView}</h1>
+        {currentAccount && (
+          <div className="account-badge" style={{ 
+            marginTop: '0.5rem', 
+            fontSize: '0.75rem', 
+            fontWeight: 800, 
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.25rem 0.8rem',
+            borderRadius: '50px',
+            background: 'rgba(0, 0, 0, 0.09)',
+            color: '#0b3d3d',
+            textTransform: 'uppercase',
+            letterSpacing: '0.8px',
+            border: '1px solid rgba(0, 0, 0, 0.05)'
+          }}>
+            <img src="/user_icon.png" alt="User" style={{ width: '14px', height: '14px', mixBlendMode: 'screen' }} />
+            {currentAccount.name}
+          </div>
+        )}
       </header>
 
       <main className="main-content">
