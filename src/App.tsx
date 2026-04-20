@@ -591,40 +591,40 @@ function App() {
   }, [currentAccount]);
 
   useEffect(() => {
-    if (currentAccount) {
+    if (currentAccount && !isSwitching && !isLoading && dataLoaded) {
       Preferences.set({ key: `account_${currentAccount.id}_expenses`, value: JSON.stringify(expenses) });
     }
-  }, [expenses, currentAccount]);
+  }, [expenses, currentAccount, isSwitching, isLoading, dataLoaded]);
 
   useEffect(() => {
-    if (currentAccount && categories.length > 0) {
+    if (currentAccount && categories.length > 0 && !isSwitching && !isLoading && dataLoaded) {
       Preferences.set({ key: `account_${currentAccount.id}_categories`, value: JSON.stringify(categories) });
     }
-  }, [categories, currentAccount]);
+  }, [categories, currentAccount, isSwitching, isLoading, dataLoaded]);
 
   useEffect(() => {
-    if (currentAccount && dataLoaded) {
+    if (currentAccount && dataLoaded && !isSwitching && !isLoading) {
       Preferences.set({ key: `account_${currentAccount.id}_banks`, value: JSON.stringify(banks) });
     }
-  }, [banks, dataLoaded, currentAccount]);
+  }, [banks, dataLoaded, currentAccount, isSwitching, isLoading]);
 
   useEffect(() => {
-    if (currentAccount && dataLoaded) {
+    if (currentAccount && dataLoaded && !isSwitching && !isLoading) {
       Preferences.set({ key: `account_${currentAccount.id}_bankTransactions`, value: JSON.stringify(bankTransactions) });
     }
-  }, [bankTransactions, dataLoaded, currentAccount]);
+  }, [bankTransactions, dataLoaded, currentAccount, isSwitching, isLoading]);
 
   useEffect(() => {
-    if (currentAccount && dataLoaded) {
+    if (currentAccount && dataLoaded && !isSwitching && !isLoading) {
       Preferences.set({ key: `account_${currentAccount.id}_currentView`, value: currentView });
     }
-  }, [currentView, dataLoaded, currentAccount]);
+  }, [currentView, dataLoaded, currentAccount, isSwitching, isLoading]);
 
   useEffect(() => {
-    if (currentAccount && dataLoaded) {
+    if (currentAccount && dataLoaded && !isSwitching && !isLoading) {
       Preferences.set({ key: `account_${currentAccount.id}_autoPays`, value: JSON.stringify(autoPays) });
     }
-  }, [autoPays, dataLoaded, currentAccount]);
+  }, [autoPays, dataLoaded, currentAccount, isSwitching, isLoading]);
 
   useEffect(() => {
     if (dataLoaded && autoPays.length > 0) {
