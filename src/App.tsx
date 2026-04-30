@@ -77,6 +77,7 @@ interface Settings {
   timeFormat: '12h' | '24h';
   autoBackup?: boolean;
   autoBackupPath?: string;
+  autoBackupFolder?: string;
 }
 
 function App() {
@@ -244,7 +245,8 @@ function App() {
     theme: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light',
     timeFormat: '12h',
     autoBackup: false,
-    autoBackupPath: 'AutoBackup'
+    autoBackupPath: 'AutoBackup',
+    autoBackupFolder: 'ExpenseTracker'
   });
   const [lastAutoBackupTime, setLastAutoBackupTime] = useState<string | null>(null);
 
@@ -407,6 +409,11 @@ function App() {
     setAutoPays([]);
     setCategories(defaultCategories);
     setSettings({ theme: 'light', timeFormat: '12h' });
+    setDateFilter('All');
+    setCategoryFilters(['All']);
+    setPaymentModeFilter(['All']);
+    setStartDate('');
+    setEndDate('');
   };
 
   // Centralized dropdown state for "Popup Mode"
@@ -567,6 +574,26 @@ function App() {
         setCurrentView(savedView.value);
       }
 
+      const savedDateFilter = await Preferences.get({ key: `${keyPrefix}dateFilter` });
+      if (savedDateFilter.value) setDateFilter(savedDateFilter.value);
+      else setDateFilter('All');
+
+      const savedCatFilters = await Preferences.get({ key: `${keyPrefix}categoryFilters` });
+      if (savedCatFilters.value) setCategoryFilters(JSON.parse(savedCatFilters.value));
+      else setCategoryFilters(['All']);
+
+      const savedPMFilters = await Preferences.get({ key: `${keyPrefix}paymentModeFilter` });
+      if (savedPMFilters.value) setPaymentModeFilter(JSON.parse(savedPMFilters.value));
+      else setPaymentModeFilter(['All']);
+
+      const savedStartDate = await Preferences.get({ key: `${keyPrefix}startDate` });
+      if (savedStartDate.value) setStartDate(savedStartDate.value);
+      else setStartDate('');
+
+      const savedEndDate = await Preferences.get({ key: `${keyPrefix}endDate` });
+      if (savedEndDate.value) setEndDate(savedEndDate.value);
+      else setEndDate('');
+
       setIsAuthLoading(false);
     } catch (err) {
       console.error('Error loading account data', err);
@@ -634,6 +661,16 @@ function App() {
 
   useEffect(() => {
     if (currentAccount && dataLoaded && !isSwitching && !isLoading) {
+      Preferences.set({ key: `account_${currentAccount.id}_dateFilter`, value: dateFilter });
+      Preferences.set({ key: `account_${currentAccount.id}_categoryFilters`, value: JSON.stringify(categoryFilters) });
+      Preferences.set({ key: `account_${currentAccount.id}_paymentModeFilter`, value: JSON.stringify(paymentModeFilter) });
+      Preferences.set({ key: `account_${currentAccount.id}_startDate`, value: startDate });
+      Preferences.set({ key: `account_${currentAccount.id}_endDate`, value: endDate });
+    }
+  }, [dateFilter, categoryFilters, paymentModeFilter, startDate, endDate, dataLoaded, currentAccount, isSwitching, isLoading]);
+
+  useEffect(() => {
+    if (currentAccount && dataLoaded && !isSwitching && !isLoading) {
       Preferences.set({ key: `account_${currentAccount.id}_autoPays`, value: JSON.stringify(autoPays) });
     }
   }, [autoPays, dataLoaded, currentAccount, isSwitching, isLoading]);
@@ -653,7 +690,8 @@ function App() {
 
     const dataStr = JSON.stringify(backupData, null, 2);
     const safePath = settings.autoBackupPath.replace(/[^a-zA-Z0-9_\-\s]/g, '') || 'AutoBackup';
-    const pathName = `ExpenseTracker/${safePath}.json`;
+    const safeFolder = (settings.autoBackupFolder || 'ExpenseTracker').replace(/[^a-zA-Z0-9_\-\s]/g, '') || 'ExpenseTracker';
+    const pathName = `${safeFolder}/${safePath}.json`;
 
     if (Capacitor.isNativePlatform()) {
       try {
@@ -2503,27 +2541,43 @@ function App() {
                     </label>
                   </div>
                   {settings.autoBackup && (
-                    <div className="form-group" style={{ marginBottom: 0 }}>
-                      <label style={{ fontSize: '0.75rem' }}>Backup File Name</label>
-                      <input 
-                        type="text" 
-                        value={settings.autoBackupPath || ''} 
-                        onChange={(e) => {
-                          const newSettings = { ...settings, autoBackupPath: e.target.value };
-                          setSettings(newSettings);
-                          Preferences.set({ key: `account_${currentAccount?.id}_settings`, value: JSON.stringify(newSettings) });
-                        }}
-                        placeholder="e.g. MyBackup"
-                        style={{ padding: '0.6rem', fontSize: '0.85rem' }}
-                      />
-                      <small style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.5rem' }}>
-                        Saved to: Documents/ExpenseTracker/ (or Internal App Data)
-                      </small>
-                      {lastAutoBackupTime && (
-                        <small style={{ fontSize: '0.7rem', color: 'var(--accent-color)', display: 'block', marginTop: '0.2rem', fontWeight: 600 }}>
-                          Last auto-backup: {lastAutoBackupTime}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '0.75rem' }}>Backup Folder Name</label>
+                        <input 
+                          type="text" 
+                          value={settings.autoBackupFolder || 'ExpenseTracker'} 
+                          onChange={(e) => {
+                            const newSettings = { ...settings, autoBackupFolder: e.target.value };
+                            setSettings(newSettings);
+                            Preferences.set({ key: `account_${currentAccount?.id}_settings`, value: JSON.stringify(newSettings) });
+                          }}
+                          placeholder="e.g. ExpenseTracker"
+                          style={{ padding: '0.6rem', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '0.75rem' }}>Backup File Name</label>
+                        <input 
+                          type="text" 
+                          value={settings.autoBackupPath || ''} 
+                          onChange={(e) => {
+                            const newSettings = { ...settings, autoBackupPath: e.target.value };
+                            setSettings(newSettings);
+                            Preferences.set({ key: `account_${currentAccount?.id}_settings`, value: JSON.stringify(newSettings) });
+                          }}
+                          placeholder="e.g. MyBackup"
+                          style={{ padding: '0.6rem', fontSize: '0.85rem' }}
+                        />
+                        <small style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.5rem' }}>
+                          Saved to: Documents/{settings.autoBackupFolder || 'ExpenseTracker'}/ (or Internal App Data)
                         </small>
-                      )}
+                        {lastAutoBackupTime && (
+                          <small style={{ fontSize: '0.7rem', color: 'var(--accent-color)', display: 'block', marginTop: '0.2rem', fontWeight: 600 }}>
+                            Last auto-backup: {lastAutoBackupTime}
+                          </small>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
