@@ -75,6 +75,8 @@ interface Account {
 interface Settings {
   theme: 'light' | 'dark';
   timeFormat: '12h' | '24h';
+  autoBackup?: boolean;
+  autoBackupPath?: string;
 }
 
 function App() {
@@ -240,8 +242,11 @@ function App() {
   // Settings
   const [settings, setSettings] = useState<Settings>({
     theme: (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light',
-    timeFormat: '12h'
+    timeFormat: '12h',
+    autoBackup: false,
+    autoBackupPath: 'AutoBackup'
   });
+  const [lastAutoBackupTime, setLastAutoBackupTime] = useState<string | null>(null);
 
   // Backup & Restore
   // edit mode
@@ -502,10 +507,17 @@ function App() {
       if (savedSettings.value) {
         const settingsData = JSON.parse(savedSettings.value);
         if (settingsData && typeof settingsData === 'object') {
-          setSettings(settingsData);
+          setSettings(prev => ({ ...prev, ...settingsData }));
           if (settingsData.theme === 'dark') document.body.classList.add('dark-mode');
           else document.body.classList.remove('dark-mode');
         }
+      }
+
+      const savedLastAutoBackup = await Preferences.get({ key: `${keyPrefix}lastAutoBackupTime` });
+      if (savedLastAutoBackup.value) {
+        setLastAutoBackupTime(savedLastAutoBackup.value);
+      } else {
+        setLastAutoBackupTime(null);
       }
 
       const savedBanks = await Preferences.get({ key: `${keyPrefix}banks` });
@@ -625,6 +637,61 @@ function App() {
       Preferences.set({ key: `account_${currentAccount.id}_autoPays`, value: JSON.stringify(autoPays) });
     }
   }, [autoPays, dataLoaded, currentAccount, isSwitching, isLoading]);
+
+  const performAutoBackup = async () => {
+    if (!settings.autoBackup || !settings.autoBackupPath || !currentAccount) return;
+
+    let backupData: any = { 
+      settings,
+      expenses,
+      banks,
+      bankTransactions,
+      categories,
+      depositCategories,
+      autoPays
+    };
+
+    const dataStr = JSON.stringify(backupData, null, 2);
+    const safePath = settings.autoBackupPath.replace(/[^a-zA-Z0-9_\-\s]/g, '') || 'AutoBackup';
+    const pathName = `ExpenseTracker/${safePath}.json`;
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        await Filesystem.writeFile({
+          path: pathName,
+          data: dataStr,
+          directory: Directory.Documents,
+          encoding: Encoding.UTF8,
+          recursive: true
+        });
+        const now = new Date().toLocaleString();
+        setLastAutoBackupTime(now);
+        Preferences.set({ key: `account_${currentAccount.id}_lastAutoBackupTime`, value: now });
+      } catch (err) {
+        console.warn('Documents backup failed, falling back to Data directory', err);
+        try {
+          await Filesystem.writeFile({
+            path: pathName,
+            data: dataStr,
+            directory: Directory.Data,
+            encoding: Encoding.UTF8,
+            recursive: true
+          });
+          const now = new Date().toLocaleString();
+          setLastAutoBackupTime(now);
+          Preferences.set({ key: `account_${currentAccount.id}_lastAutoBackupTime`, value: now });
+        } catch (fallbackErr) {
+          console.error('Auto backup completely failed', fallbackErr);
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (dataLoaded && !isSwitching && !isLoading && settings.autoBackup) {
+      performAutoBackup();
+    }
+  }, [expenses, banks, bankTransactions, categories, depositCategories, autoPays, settings, isSwitching, isLoading, dataLoaded]);
 
   useEffect(() => {
     if (dataLoaded && autoPays.length > 0) {
@@ -2416,6 +2483,50 @@ function App() {
               <div className="backup-container animate-in">
                 <h2>Backup & Restore</h2>
                 <p style={{ marginBottom: '1.25rem', opacity: 0.8 }}>Secure your data or restore existing backups across multiple accounts.</p>
+                
+                <div className="backup-card shadow-sm" style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '0.95rem', marginBottom: '0.85rem', fontWeight: 700 }}>Automatic Backup</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <span style={{ fontSize: '0.85rem' }}>Enable Auto Backup</span>
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={settings.autoBackup || false}
+                        onChange={(e) => {
+                          const newSettings = { ...settings, autoBackup: e.target.checked };
+                          setSettings(newSettings);
+                          Preferences.set({ key: `account_${currentAccount?.id}_settings`, value: JSON.stringify(newSettings) });
+                          if (e.target.checked) showAlert('Auto backup enabled');
+                        }}
+                      />
+                      <span className="slider round"></span>
+                    </label>
+                  </div>
+                  {settings.autoBackup && (
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: '0.75rem' }}>Backup File Name</label>
+                      <input 
+                        type="text" 
+                        value={settings.autoBackupPath || ''} 
+                        onChange={(e) => {
+                          const newSettings = { ...settings, autoBackupPath: e.target.value };
+                          setSettings(newSettings);
+                          Preferences.set({ key: `account_${currentAccount?.id}_settings`, value: JSON.stringify(newSettings) });
+                        }}
+                        placeholder="e.g. MyBackup"
+                        style={{ padding: '0.6rem', fontSize: '0.85rem' }}
+                      />
+                      <small style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.5rem' }}>
+                        Saved to: Documents/ExpenseTracker/ (or Internal App Data)
+                      </small>
+                      {lastAutoBackupTime && (
+                        <small style={{ fontSize: '0.7rem', color: 'var(--accent-color)', display: 'block', marginTop: '0.2rem', fontWeight: 600 }}>
+                          Last auto-backup: {lastAutoBackupTime}
+                        </small>
+                      )}
+                    </div>
+                  )}
+                </div>
                 
                 <div className="backup-card shadow-sm" style={{ background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '16px', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
                   <h3 style={{ fontSize: '0.95rem', marginBottom: '0.85rem', fontWeight: 700 }}>Backup Selection</h3>
